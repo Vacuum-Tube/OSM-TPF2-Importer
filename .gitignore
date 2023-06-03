@@ -1,0 +1,7 @@
+.gitattributes
+python/.idea/
+python/venv/
+python/output.txt
+*.pyc
+*.osm
+*.pbf

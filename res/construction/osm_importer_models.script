@@ -1,0 +1,5 @@
+function data()
+return {
+	updateFn = (require"osm_importer.models").updateFnScript,
+}
+end
