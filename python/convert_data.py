@@ -132,7 +132,9 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         isaeroway = "aeroway" in tags and tags.get("aeroway") in {"runway", "taxiway"}
         isarea = tags.get("area") == "yes"  # closed way -> area (not always correctly set)
         isfloating = tags.get("floating") == "yes"
-        assert not (isstreet and istrack)
+        if (isstreet and istrack):
+            print("Warning: Way is street AND track", id)
+            istrack = False
 
         if (istrack or isstreet or isstream or isaeroway) and not isarea and not isfloating:
             speed = tointornil(tags.get("maxspeed"))
@@ -146,8 +148,10 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                 print(f"Track {id} no gauge")
 
             for i in range(len(wnodes) - 1):
-                if wnodes[i] not in data["nodes"] or wnodes[i + 1] not in data["nodes"]:  # node not in data, skip edge
-                    continue
+                if wnodes[i] not in data["nodes"] or wnodes[i + 1] not in data["nodes"]:
+                    # print(f"Out of bounds: Skip Edge({wnodes[i]},{wnodes[i + 1]})")
+                    # continue  # skip edge
+                    raise Exception(f"Way{id} - Edge({wnodes[i]},{wnodes[i + 1]}) Node not in data")
                 data["edges"][f"{id}_{i}"] = {
                     "node0": wnodes[i],
                     "node1": wnodes[i + 1],

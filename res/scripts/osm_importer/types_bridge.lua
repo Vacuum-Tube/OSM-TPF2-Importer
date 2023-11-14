@@ -22,6 +22,9 @@ local ped_erac = "lollo_freestyle_train_station/pedestrian_basic_no_pillars_era_
 -- 1939805466
 local ang_t1 = "angier_bridge_t1.lua"
 
+-- 2187434173 TFMR2.0 Bridge (Transport Fever Modular Road)
+local tfmr = "epbridge_thick.lua"
+
 
 bt.streettypes = {
 	motorway = autobahn,
@@ -30,15 +33,15 @@ bt.streettypes = {
 	trunk_link = autobahn,
 	primary = pl_cement,
 	primary_link = pl_cement,
-	secondary_link = pl_cement,
-	secondary = pl_cement,
+	secondary_link = ang_t1,
+	secondary = ang_t1,
 	tertiary = ang_t1,
 	tertiary_link = ang_t1,
-	residential = ang_t1,
-	living_street = ang_t1,
+	residential = tfmr,
+	living_street = tfmr,
 	unclassified = ang_t1,
 	service = ang_t1,
-	construction = ang_t1,
+	construction = tfmr,
 	pedestrian = ped_erac,
 	track = ped_erac,
 	footway = ped_erac,

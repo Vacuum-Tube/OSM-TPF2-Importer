@@ -16,9 +16,10 @@ def optimize(data):
     # nx.draw_networkx(g,pos=nx.get_node_attributes(g,"pos"), with_labels=False,node_size=4)#'node_color': 'black'
     # nx.draw_networkx(gt,pos=nx.get_node_attributes(gt,"pos"), with_labels=False,node_size=4)#'node_color': 'black'
     # plt.gca().set_aspect(1)
+    # plt.show()
 
     paths_track = list(get_paths_to_simplify(gt, gt))  # ignore railway crossings
-    paths_street = list(get_paths_to_simplify(gs, g))
+    # paths_street = list(get_paths_to_simplify(gs, g))
     # data["paths"] = {
     #     "track": paths_track,
     #     "street": paths_street,
@@ -165,8 +166,8 @@ def add_path_info_to_nodes(data, paths):
 
 def create_graphs(data):
     g = nx.Graph()
-    for id, pos in data["nodes"].items():
-        g.add_node(id, pos=pos)
+    for id, node in data["nodes"].items():
+        g.add_node(id, pos=node["pos"])
     for id, edge in data["edges"].items():
         if g.has_edge(edge["node0"], edge["node1"]):  # duplicate edges can exist because of mapping errors or
             print(f'Edge({edge["node0"]},{edge["node1"]}) {id} already exist! '
@@ -212,14 +213,13 @@ def get_paths_to_simplify(G, G2):  # G2: graph to check degree / to consider rai
                 yield path
 
 
-# G undirected Graph
 def is_endpoint(G, node):
-    return G.degree(node) != 2
+    return G.degree(node) != 2  # if G undirected Graph
 
 
 def build_path(G, endpoint, endpoint_successor, endpoints):
     path = [endpoint, endpoint_successor]
-    assert len(list(G.neighbors(endpoint_successor))) == 2
+    assert len(list(G.neighbors(endpoint_successor))) == 2, endpoint_successor
     for successor in G.neighbors(endpoint_successor):
         if successor not in path:
             path.append(successor)

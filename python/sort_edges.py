@@ -26,7 +26,7 @@ highwaytypes = [  # sorting order
     "bridleway",
     "waterstream",
 ]
-# move highway types to ignoredtypes to skip them from the output data
+# move types to ignoredtypes to omit them from the output data
 ignoredtypes = [
     "steps",
     "platform",
@@ -48,8 +48,8 @@ def sort(edges):
                 if htype not in ignoredtypes:
                     print(f"Unknown highway type: {htype} {eid}")
     print("Track Edges: ", len(ret))
-    print(
-        "\n  ".join([f"Street Edges (highway types):", *[f"{htype}: {len(streets[htype])}" for htype in highwaytypes]]))
+    print("\n  ".join(
+        [f"Street Edges (highway types):", *[f"{htype}: {len(streets[htype])}" for htype in highwaytypes]]))
     for htype in highwaytypes:
         ret.extend(streets[htype])
     return ret

@@ -1,7 +1,11 @@
 .gitattributes
-python/.idea/
-python/venv/
-python/output.txt
 *.pyc
 *.osm
 *.pbf
+python/.idea/
+python/venv/
+python/output.txt
+python/osmosis/*
+!python/osmosis/README.md
+python/osmdata.lua
+res/scripts/osm_importer/osmdata.lua

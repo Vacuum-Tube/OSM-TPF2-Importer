@@ -36,7 +36,7 @@ local function run()
 	-- (3) Build edges (Streets/Tracks)
 	options = {
 		log_level = 1,
-		skip_nodes_outofbounds = true,
+		skip_nodes_outofbounds = true,  -- avoids edges out of map bounds (but not forests)
 		build_streets = true,
 		build_tracks = true,
 		build_subwaytracks = true,  -- build subways and light rail as tracks
