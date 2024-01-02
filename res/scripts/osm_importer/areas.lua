@@ -5,6 +5,7 @@ local a = {}
 
 function a.buildAreas(areas, nodes)
 	timer.start()
+	math.randomseed(os.time())  -- so that multiple executions do not create the exact same result
 	print("Build Forests",#areas.forests)
 	a.buildForests(areas.forests, nodes)
 	print("Build Shrubs",#areas.shrubs)

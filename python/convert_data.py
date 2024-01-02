@@ -27,6 +27,17 @@ def tointornil(str, fallback=None):
         return fallback
 
 
+def trueornil(bool):
+    return bool or None
+
+
+def funcornil(elem, func):
+    if elem is not None:
+        return func(elem)
+    else:
+        return None
+
+
 def convert(nodes, ways, relations, map_bounds, bounds_length):
     data = {
         "towns": {},
@@ -78,7 +89,48 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         data["nodes"][id] = {
             "pos": pos,
             # "railway": tags.get("railway"),
-            "switch": tags.get("railway") == "switch" or None,
+            "switch": trueornil(tags.get("railway") == "switch"),
+            "signal": tags.get("railway") == "signal" and {
+                "ref": tags.get("ref"),
+                "track_position": tags.get("railway:position"),  # Strecken km
+                "direction_backward": trueornil(tags.get("railway:signal:direction") == "backward"),
+                "position_left": trueornil((tags.get("railway:signal:position") == "left") != (
+                    # left/right/bridge/overhead/in_track
+                        tags.get("railway:signal:direction") == "backward")),
+                # XOR, in OSM left is interpreted from the original direction, in TPF from the signal dircetion
+                "combined": tags.get("railway:signal:combined"),
+                "combined_function": tags.get("railway:signal:combined:function"),  # exit/entry/intermediate/block
+                "main": tags.get("railway:signal:main"),
+                "main_function": tags.get("railway:signal:main:function"),  # exit/entry/intermediate/block
+                "main_form": tags.get("railway:signal:main:form"),  # sign/light/semaphore
+                "distant": tags.get("railway:signal:distant"),
+                "distant_form": tags.get("railway:signal:distant:form"),  # sign/light/semaphore
+                "distant_repeated": trueornil(tags.get("railway:signal:distant:repeated") == "yes"),
+                "distant_shortened": trueornil(tags.get("railway:signal:distant:shortened") == "yes"),
+                "speedlimit": tags.get("railway:signal:speed_limit"),
+                "speedlimit_form": tags.get("railway:signal:speed_limit:form"),  # sign/light
+                "speedlimit_speed": tags.get("railway:signal:speed_limit:speed"),
+                "speedlimit_speed_int": tointornil(funcornil(tags.get("railway:signal:speed_limit:speed"),
+                                                             lambda x: x.split(";")[0])),
+                "speedlimitdistant": tags.get("railway:signal:speed_limit_distant"),
+                "speedlimitdistant_form": tags.get("railway:signal:speed_limit_distant:form"),  # sign/light
+                "speedlimitdistant_speed": tags.get("railway:signal:speed_limit_distant:speed"),
+                "speedlimitdistant_speed_int": tointornil(
+                    funcornil(tags.get("railway:signal:speed_limit_distant:speed"),
+                              lambda x: x.split(";")[0])),
+                "crossing": tags.get("railway:signal:crossing"),
+                "crossingdistant": tags.get("railway:signal:crossing_distant"),
+                "minor": tags.get("railway:signal:minor"),
+                "minor_dwarf": trueornil(tags.get("railway:signal:minor:height") == "dwarf"),
+                "stop": tags.get("railway:signal:stop"),
+                "route": tags.get("railway:signal:route"),
+                "route_states": tags.get("railway:signal:route:states"),
+                "routedistant": tags.get("railway:signal:route_distant"),
+                "routedistant_states": tags.get("railway:signal:route_distant:states"),
+                "wrongtrack": tags.get("railway:signal:wrong_road"),
+                "departure": tags.get("railway:signal:departure"),
+                "whistle": tags.get("railway:signal:whistle"),
+            } or None,
         }
 
         if tags.get("natural") == "tree":
@@ -189,7 +241,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                         "gauge": tointornil(tags.get("gauge")),
                         "tram": istram,
                         "subway": issubway,
-                        "lzb": (tags.get("railway:lzb") == "yes") or None,
+                        "lzb": trueornil(tags.get("railway:lzb") == "yes"),
                     } or None,
                     "bridge": False if tags.get("bridge") == "no" else tags.get("bridge"),
                     "tunnel": False if tags.get("tunnel") == "no" else tags.get("tunnel"),
@@ -229,8 +281,8 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                         way = ways[member.member_id]
                         if way.id not in forests_added:
                             mp[member.role].append(list(way.nodes))
-                        else:
-                            print(f"Way {member.member_id} from Rel {relation.id} already in data.areas")
+                        # else:
+                        # print(f"Way {member.member_id} from Rel {relation.id} already in data.areas")
                 else:
                     assert False
             if len(mp["outer"]) > 0:

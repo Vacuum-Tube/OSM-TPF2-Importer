@@ -4,7 +4,7 @@
 *.pbf
 python/.idea/
 python/venv/
-python/output.txt
+python/log.txt
 python/osmosis/*
 !python/osmosis/README.md
 python/osmdata.lua

@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys
 import luadata
 
 import read_osm
@@ -8,32 +7,36 @@ import optimize_edges
 import sort_edges
 from lua_remove_nil import lua_remove_nil
 
-# USE THIS to redirect output to file
-log_file = 'output.txt'
-sys.stdout = open(log_file, 'w')
+# redirect log to file; comment out to write in console
+# log_file = 'log.txt'
+# sys.stdout = open(log_file, 'w')
 
-# INFILE = "map5.osm"
+#################################################
+
+# set Input and Output file
+# INFILE = "map7.osm"
 # INFILE = "map-frankfurt20230409.osm"
 INFILE = "hessen-220101.osm.pbf_crop.osm"
 OUTFILE = "osmdata.lua"
 
-# Define Bounds
-bounds = {  # set bounds manually, otherwise bounds of .osm file are used
+# define Map Bounds
+bounds_length = (24576, 24576)  # tpf2 map size
+bounds = {  # set bounds manually
     "minlat": 49.9829, "minlon": 8.48095,
     "maxlat": 50.2037, "maxlon": 8.8260,
 }
+# bounds = read_osm.read_bounds(INFILE)  # use bounds of osm file
 print("Bounds:", bounds)
-# print(read_osm.read_bounds(INFILE))
 
+#################################################
 
 # 1. Parse osm xml data and put in dicts
 nodes, ways, relations = read_osm.read(INFILE)
-bounds_length = (24576, 24576)
 
 # 2. Convert osm data to relevant data for TPF2
 data = convert_data.convert(nodes, ways, relations, bounds, bounds_length)
 
-# 3. Make some optimizations for edges (shorting, curving)
+# 3. Do optimizations for edges (shorting, curving)
 optimize_edges.optimize(data)
 
 # 4. Sort edges by (street)type, so more important streets get built first
@@ -42,6 +45,9 @@ data["edges"] = sort_edges.sort(data["edges"])
 # 5. remove nil values, makes file shorter
 data = lua_remove_nil(data)
 
+#################################################
+
+# write to output
 luadata.write(OUTFILE, data, indent="\t")
 print(f"Successfully converted OSM data to: '{OUTFILE}'")
 print("\n  ".join([f"Data contains:",

@@ -50,7 +50,11 @@ function tt.getType(track)
 	
 	if track.type=="disused" then
 		-- if track.tram then
-		return "old_track_standard.lua"
+		if track.gauge and track.gauge<850 then
+			return "600mm_stahl_12_schotter.lua"
+		else
+			return "old_track_standard.lua"
+		end
 	end
 	
 	-- if track.type=="miniature" then

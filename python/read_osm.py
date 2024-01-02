@@ -3,7 +3,7 @@ import subprocess
 import xml.etree.ElementTree as Xmlt
 from osmread import parse_file, Node, Way, Relation
 
-osmosis_path = "osmosis\\bin\\osmosis"
+osmosis_path = "osmosis\\bin\\osmosis"  # sry unix, please adjust...
 
 
 def crop_bounds(filename, bounds):

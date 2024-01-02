@@ -26,7 +26,7 @@ function t.createTownLabel(pos,name)
 end
 
 function t.createTownLabels(towns)
-	print("Start Create Town Labels",#towns)
+	print("Create Town Labels",#towns)
 	for i,data in pairs(towns) do
 		t.createTownLabel(data.pos,data.name)
 	end

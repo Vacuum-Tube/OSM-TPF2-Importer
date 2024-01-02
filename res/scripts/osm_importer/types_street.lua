@@ -9,7 +9,7 @@ st.small_type = st.fallback_type
 
 function st.getType(street,options)
 	-- if true then return st.fallback_type end
-	if options.build_autobahn==false and street.type=="motorway" and street.oneway then
+	if options.build_autobahn==false and (street.type=="motorway" or street.type=="trunk") and street.oneway then
 		return
 	end
 	if options.build_edges_street_types==false and st.osmtypes_street[street.type] then

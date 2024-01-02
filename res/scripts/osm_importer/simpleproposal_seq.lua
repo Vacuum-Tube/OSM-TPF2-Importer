@@ -79,7 +79,7 @@ function s.SimpleProposalSeqEdgeCmd(edge,cbLevel,retryWSmStreet)
 		},
 		edges = {
 			edge
-		}
+		},
 	}
 	s.replaceNode(d2,edge.node0)
 	s.replaceNode(d2,edge.node1)
