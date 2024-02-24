@@ -26,7 +26,7 @@ m.postRunFnScript = function()
 			model = model,
 			mdl = mdlfile,
 		}
-		api.res.constructionRep.add("osm_importer/models/"..model , con, false)
+		api.res.constructionRep.add("osm_importer/models/"..model, con, false)
 	end
 end
 
@@ -52,11 +52,15 @@ m.updateFnScript = function(constrParams,scriptParams)
 end
 
 function m.buildObjects(objects)
-	print("Start Build Objects",#objects)
+	m.modelrestest()
+	print("Build Objects", #objects)
+	local built = {}
 	for i,data in pairs(objects) do
 		assert(m.models[data.type], "No mdl for type: "..data.type)
 		m.buildModel(data.pos, data.type)
+		built[data.type] = (built[data.type] or 0) + 1
 	end
+	print("Built: "..toString(built))
 end
 
 function m.buildModel(pos, model)
@@ -80,6 +84,14 @@ function m.buildCon(pos, con)
 	local p = api.type.SimpleProposal.new()
 	p.constructionsToAdd[1] = c
 	api.cmd.sendCommand(api.cmd.make.buildProposal(p, context, ignoreErrors~=false))
+end
+
+function m.modelrestest()
+	for i, mdl in pairs(m.models) do
+		if api.res.modelRep.find(mdl)<0 then
+			error("Model not found: '"..mdl.."' (Mod missing?)")
+		end
+	end
 end
 
 return m

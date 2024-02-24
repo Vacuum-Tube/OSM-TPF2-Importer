@@ -14,6 +14,7 @@ function data()
 					tfnetId = 29264,
 				},
 			},
+			url = "https://github.com/Vacuum-Tube/OSM-TPF2-Importer",
 		},
 		-- runFn = function (settings)
 		postRunFn = function (settings)

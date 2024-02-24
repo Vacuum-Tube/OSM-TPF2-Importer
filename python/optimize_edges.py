@@ -1,6 +1,5 @@
 import math
 import networkx as nx
-import numpy as np
 from vec2 import Vec2
 
 
@@ -9,23 +8,30 @@ def optimize(data):
     split_long_edges(data["nodes"], data["edges"], 70, etype="street")
     split_long_edges(data["nodes"], data["edges"], 100, etype="track")
 
-    # 2. Create graph and get paths
-    g, gt, gs, gdt = create_graphs(data["nodes"], data["edges"])
-    paths_track = list(get_paths_to_simplify(gdt, gdt))  # ignore railway crossings, they dont break paths
-    # paths_street = list(get_paths_to_simplify(gs, g))
+    # 2. Create graph and obtain paths
+    g, gd = create_graphs(data["nodes"], data["edges"])
+    gs = create_sub_graph(g, "STREET")
+    gt = create_sub_graph(gd, "TRACK")  # we need a directed graph for the signal direction
+    gb = create_bridge_graph(g)
+    paths_track = list(get_paths_to_simplify(gt, gt))  # ignore railway crossings, so they dont break paths
+    paths_street = list(get_paths_to_simplify(gs, gs))
+    paths_bridges = list(get_paths_to_simplify(gb, gb))
     data["paths"] = {
         "track": paths_track,
-        # "street": paths_street,
+        "street": paths_street,
+        "bridge": paths_bridges,
     }
 
     # 3. Avoid very short tracks (can lead to zig-zag) and merge them
     remove_short_edges(paths_track, g, gt, data["nodes"], data["edges"], 15)
 
     # 4. Calculate tangents for curved edge paths
-    add_curve_tangents(paths_track, data["nodes"])
-    add_path_info_to_nodes(paths_track, data["nodes"])
+    add_curve_tangents(paths_track, g)
+    add_curve_tangents(paths_street, g)
+    add_path_info_to_nodes(paths_track, data["nodes"], "track")
+    add_path_info_to_nodes(paths_street, data["nodes"], "street")
 
-    # 5. Add signal information
+    # 5. Add signal information to edges
     adjust_signals(data["nodes"], g)
 
 
@@ -85,7 +91,7 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                     lens.append(length)
                 else:
                     lens.append(math.inf)
-            idx = np.array(lens).argmin()  # find shortest edge
+            idx = min(range(len(lens)), key=lambda x: lens[x])  # argmin, find shortest edge
             if lens[idx] < min_edge_length:
                 # remove this edge; remove node at side of shorter edge, correct connected edge
                 if idx == 0:
@@ -96,9 +102,15 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                     succ = True
                 elif is_railway_crossing(g, gt, node_ids[idx + 1]):
                     succ = False
-                elif is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx - 1]):
+                elif nodes[node_ids[idx]]["signal"]:
                     succ = True
-                elif is_bridge_or_tunnel(g, node_ids[idx + 2], node_ids[idx + 1]):
+                elif nodes[node_ids[idx + 1]]["signal"]:
+                    succ = False
+                elif not is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx + 1]) and \
+                        is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx - 1]):
+                    succ = True
+                elif not is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx + 1]) and \
+                        is_bridge_or_tunnel(g, node_ids[idx + 2], node_ids[idx + 1]):
                     succ = False
                 elif lens[idx + 1] < lens[idx - 1]:
                     succ = True
@@ -115,8 +127,8 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                     node_keep = node_ids[idx + 1]
                     node_correct = node_ids[idx - 1]
                 if (is_railway_crossing(g, gt, node_rem)  # between 2 railwaycrossings or endpoints, cant remove
-                        or is_bridge_or_tunnel(g, node_rem, node_correct)  # replacing edge is bridge/tunnel, cant merge
                         or nodes[node_rem]["signal"]):  # dont remove signal
+                    # or is_bridge_or_tunnel(g, node_rem, node_correct)
                     skip_edges.add((node_ids[idx], node_ids[idx + 1]))
                     skipped = True
                     print("Cannot remove")
@@ -139,35 +151,50 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                 edge_removed = True
 
 
-def add_curve_tangents(paths, nodes):
+def add_curve_tangents(paths, g, maxangle=30):
     for path in paths:
         for n0, n1, n2 in zip(path[:-2], path[1:-1], path[2:]):
-            p0 = Vec2(nodes[n0]["pos"])
-            p1 = Vec2(nodes[n1]["pos"])
-            p2 = Vec2(nodes[n2]["pos"])
-            t01 = (p1 - p0).normalize()  # / (p1 - p0).length()
-            t12 = (p2 - p1).normalize()
-            tang = t01 + t12
-            nodes[n1]["tangent"] = tang.normalize().toArray()  # store the tangent in the node info
-            # edges[gt.edges[n0,n1]["name"]]["tangent0"] = normalize(t)
-            # edges[gt.edges[n1,n2]["name"]]["tangent1"] = normalize(t)
+            p0 = Vec2(g.nodes[n0]["pos"])
+            p1 = Vec2(g.nodes[n1]["pos"])
+            p2 = Vec2(g.nodes[n2]["pos"])
+            t01 = (p1 - p0)  # .normalize()
+            t12 = (p2 - p1)  # .normalize()
+            if Vec2.angle_cos(t01, t12) > math.cos(maxangle / 180 * math.pi):
+                tang = (t01 + t12).normalize()
+                # nodes[n1]["tangent"] = tang.toArray()
+                e01 = g.edges[n0, n1]["data"]
+                if e01["node0"] == n0:
+                    tangent01, mirr = "tangent1", 1
+                else:
+                    tangent01, mirr = "tangent0", -1
+                    e01["reversetopath"] = True
+                e01[tangent01] = (tang * t01.length() * mirr).toArray()
+                e12 = g.edges[n1, n2]["data"]
+                if e12["node0"] == n1:
+                    tangent01, mirr = "tangent0", 1
+                else:
+                    tangent01, mirr = "tangent1", -1
+                    e12["reversetopath"] = True
+                e12[tangent01] = (tang * t12.length() * mirr).toArray()
 
 
-def add_path_info_to_nodes(paths, nodes):
+def add_path_info_to_nodes(paths, nodes, prefix):
     for path in paths:
         for n0, n1, n2 in zip(path[:-2], path[1:-1], path[2:]):
-            nodes[n1]["path_predecessor"] = n0
-            nodes[n1]["path_successor"] = n2
+            assert f"path_{prefix}_predecessor" not in nodes[n1], n1
+            assert f"path_{prefix}_successor" not in nodes[n1], n1
+            nodes[n1][f"path_{prefix}_predecessor"] = n0
+            nodes[n1][f"path_{prefix}_successor"] = n2
 
 
 def adjust_signals(nodes, g):
     for nid, node in nodes.items():
         if node.get("signal"):
-            if "path_predecessor" in node and "path_successor" in node:
-                edge = g.edges[nid, node["path_predecessor"]]
+            if "path_track_predecessor" in node and "path_track_successor" in node:
+                edge = g.edges[nid, node["path_track_predecessor"]]
                 # place signal on edge before because of Signal Distance and so that signals are right in front of poles
                 if node["signal"]["direction_backward"]:
-                    edge = g.edges[nid, node["path_successor"]]  # need to place on edge after before pole
+                    edge = g.edges[nid, node["path_track_successor"]]  # need to place on edge after before pole
                 edge["data"]["objects"] = {"signal": node["signal"]}
                 node["signal"] = False
             else:
@@ -185,23 +212,26 @@ def create_graphs(nodes, edges):
                   f'(type: {g.edges[edge["node0"], edge["node1"]]["type"]})')
             if edge["track"]:  # ...tracks on streets. priorize street.
                 continue
-        g.add_edge(edge["node0"], edge["node1"],
-                   name=id, data=edge, type=edge["track"] and "TRACK" or edge["street"] and "STREET")
-        gd.add_edge(edge["node0"], edge["node1"],
-                    name=id, data=edge, type=edge["track"] and "TRACK" or edge["street"] and "STREET")
+        for gi in [g, gd]:
+            gi.add_edge(edge["node0"], edge["node1"], name=id, data=edge,
+                        type=edge["track"] and "TRACK" or edge["street"] and "STREET")
     g.remove_nodes_from(list(nx.isolates(g)))  # remove nodes not connected to any edges
     gd.remove_nodes_from(list(nx.isolates(gd)))
-    gt = create_sub_graph(g, "TRACK")
-    gs = create_sub_graph(g, "STREET")
-    gdt = create_sub_graph(gd, "TRACK")
-    return g, gt, gs, gdt
+    return g, gd
 
 
 def create_sub_graph(g, etype):
-    gt = g.copy()
-    gt.remove_edges_from(filter(lambda e: g.edges[e]["type"] != etype, g.edges))
-    gt.remove_nodes_from(list(nx.isolates(gt)))
-    return gt
+    g2 = g.copy()
+    g2.remove_edges_from(filter(lambda e: g.edges[e]["type"] != etype, g.edges))
+    g2.remove_nodes_from(list(nx.isolates(g2)))
+    return g2
+
+
+def create_bridge_graph(g):
+    g2 = g.copy()
+    g2.remove_edges_from(filter(lambda e: not g.edges[e]["data"]["bridge"], g.edges))
+    g2.remove_nodes_from(list(nx.isolates(g2)))
+    return g2
 
 
 def is_railway_crossing(g, gt, node):
@@ -250,10 +280,10 @@ def build_path(G, endpoint, endpoint_successor, endpoints):
     successor = endpoint_successor
     while successor not in endpoints:
         if isinstance(G, nx.DiGraph):
-            iternodes = [*G.successors(successor), *G.predecessors(successor)]
+            iternodes = {*G.successors(successor), *G.predecessors(successor)}
         else:
-            iternodes = G.neighbors(successor)
-        assert len(list(iternodes)) == 2, successor
+            iternodes = set(G.neighbors(successor))
+        assert len(iternodes) == 2, successor
         successors = [n for n in iternodes if n not in path]
         if len(successors) == 1:
             successor = successors[0]
@@ -262,8 +292,7 @@ def build_path(G, endpoint, endpoint_successor, endpoints):
             if endpoint in iternodes:
                 return path + [endpoint]
             else:
-                raise Exception("ee")
-                # return path
+                raise Exception(f"Unexpected path end {path}")
         else:
             raise Exception(f"Unexpected simplify pattern failed near {successor}")
     return path

@@ -1,7 +1,8 @@
 import os
 
 
-# USE THIS to see the exact location of coordinates in OSM
+# use this (preferably in a console) to see the exact location of the bound coordinates in a OSM map
+
 def open_in_osm(lat, lon):
     # os.startfile(f"https://www.openstreetmap.org/#map=16/{lat}/{lon}")
     os.startfile(f"https://www.openstreetmap.org/note/new?lat={lat}&lon={lon}#map=16/{lat}/{lon}")

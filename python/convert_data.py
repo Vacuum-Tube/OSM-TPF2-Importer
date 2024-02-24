@@ -1,23 +1,7 @@
 from coord2metric import Coord2metric
 from osmread import Node, Way, Relation
 
-ignored_highway_types = {  # highway types from OSM, which are not actual streets
-    "proposed",
-    "corridor",
-    "bus_stop",
-    "escape",
-    "busway",
-    "bus_guideway",
-    "road",
-    "via_ferrata",
-    "elevator",
-    "emergency_bay",
-    "rest_area",
-    "services",
-    "razed",
-    "abandoned",
-    "disused",
-}
+from sort_edges import ignored_highway_types
 
 
 def tointornil(str, fallback=None):
@@ -74,14 +58,13 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         "island": [],
     }
 
-    c = Coord2metric(map_bounds, bounds_length)
-    transf = c.latlon2metricoffset
-
     def add_object(type, pos):
         data["objects"].append({
             "type": type,
             "pos": pos,
         })
+
+    transf = Coord2metric(map_bounds, bounds_length).latlon2metricoffset
 
     for id, node in nodes.items():
         tags = node.tags
@@ -90,6 +73,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
             "pos": pos,
             # "railway": tags.get("railway"),
             "switch": trueornil(tags.get("railway") == "switch"),
+            # https://wiki.openstreetmap.org/wiki/Tag:railway%3Dsignal#How_Signal_Tagging_works_by_principle
             "signal": tags.get("railway") == "signal" and {
                 "ref": tags.get("ref"),
                 "track_position": tags.get("railway:position"),  # Strecken km
@@ -158,6 +142,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         for node in nodes:
             print("\t" + node["name"])
 
+    # https://wiki.openstreetmap.org/wiki/Key:place
     data["towns"] = [
         # *places["city"],
         *places["town"],
@@ -168,7 +153,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         # *places["square"],
     ]
 
-    forests_added = set()  # some forests are mapped twice as edge and relation
+    forests_added = set()  # some forests are mapped twice, as edge and relation
 
     for id, way in ways.items():
         tags = way.tags
@@ -180,7 +165,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         issubway = tags.get("railway") in {"light_rail", "subway"}
         istrack = tags.get("railway") in {"rail", "construction", "disused", "miniature", "narrow_gauge", "preserved"} \
                   or istram or issubway
-        isstream = tags.get("waterway") == "stream" and tags.get("tunnel") is None
+        isstream = tags.get("waterway") in {"stream", "river"} and tags.get("tunnel", "no") == "no"
         isaeroway = "aeroway" in tags and tags.get("aeroway") in {"runway", "taxiway"}
         isarea = tags.get("area") == "yes"  # closed way -> area (not always correctly set)
         isfloating = tags.get("floating") == "yes"
@@ -223,13 +208,13 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                         "bicycle": False if tags.get("bicycle") in {"no"} else tags.get("bicycle"),
                         "segregated": False if tags.get("segregated") == "no" else tags.get("segregated"),
                         "width": tointornil(tags.get("width")),
-                        "country": ("rural" in tags["zone:traffic"]) if "zone:traffic" in tags else
-                        ("urban" not in tags["source:maxspeed"]) if "source:maxspeed" in tags else
-                        False if tags.get("lit") == "yes" else None,
+                        "country": guess_urban_country(tags),
                         "lit": False if tags.get("lit") == "no" else tags.get("lit"),
                     } or isstream and {
                                   "type": "waterstream",
+                                  "waterwaytype": tags.get("waterway"),
                                   "width": tointornil(tags.get("width")),
+                                  "boat": False if tags.get("boat") == "no" else tags.get("boat"),
                               } or isaeroway and {
                                   "type": "aeroway",
                                   "subtype": tags.get("aeroway")
@@ -301,3 +286,15 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
             add_multipolygon(relation, "shrubs")
 
     return data
+
+
+def guess_urban_country(tags):
+    if "rural" in tags.get("zone:traffic", ""):
+        return True
+    if "urban" in tags.get("zone:traffic", ""):
+        return False
+    if tags.get("lit") == "yes":
+        return False
+    if "urban" in tags.get("source:maxspeed", ""):
+        return False
+    return None

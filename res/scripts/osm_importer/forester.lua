@@ -4,6 +4,8 @@ local MultiPolygon = require "snowball/common/multipolygon_1"
 
 local f = {}
 
+
+-- 2247194383 Spacky_Trees conifers
 local spacky = {
 	birke_big = "tree/european_birken.mdl",  -- reused ug msh
 	birke_small = "tree/european_birken_1.mdl",  -- reused ug msh
@@ -16,6 +18,7 @@ local spacky = {
 	tanne5 = "tree/Spacky_Tanne_pine5.mdl",
 	tanne6 = "tree/Spacky_Tanne_pine6.mdl", --small
 }
+
 
 f.models = {
 	mixed = {
@@ -97,6 +100,16 @@ function f.plantMultiPolygon(nodes,mp,config)
 		inner[i] = f.polygonPositions(nodes,polygon)
 	end
 	forester.plant2(MultiPolygon:Create(outer, inner), f.density[config] or f.density.__default, f.getModels(config), 0.3)
+end
+
+function f.modelrestest()
+	for catg, mdls in pairs(f.models) do
+		for i, mdl in pairs(mdls) do
+			if api.res.modelRep.find(mdl)<0 then
+				error("Model not found: '"..mdl.."' (Mod missing?)")
+			end
+		end
+	end
 end
 
 return f

@@ -22,7 +22,7 @@ def crop_bounds(filename, bounds):
     print(f"Extracting bounding box area from '{filename}' via osmosis ...")
     complprocess = subprocess.run([osmosis_path, read_comm, f"file={filename}", '--bounding-box',
                                    f"top={bounds['maxlat']}", f"left={bounds['minlon']}", f"bottom={bounds['minlat']}",
-                                   f"right={bounds['maxlon']}", "completeWays=yes", "completeRelations=yes",
+                                   f"right={bounds['maxlon']}", "completeWays=yes", "completeRelations=no",
                                    '--write-xml', filename_new], shell=True)
     complprocess.check_returncode()
     print(f"Saved to '{filename_new}'")

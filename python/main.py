@@ -8,15 +8,12 @@ import sort_edges
 from lua_remove_nil import lua_remove_nil
 
 # redirect log to file; comment out to write in console
-# log_file = 'log.txt'
-# sys.stdout = open(log_file, 'w')
+sys.stdout = open('log.txt', 'w')
 
 #################################################
 
 # set Input and Output file
-# INFILE = "map7.osm"
-# INFILE = "map-frankfurt20230409.osm"
-INFILE = "hessen-220101.osm.pbf_crop.osm"
+INFILE = "map.osm"
 OUTFILE = "osmdata.lua"
 
 # define Map Bounds

@@ -68,8 +68,8 @@ function s.cmdcallback(cbLevel,cbFunc,retryWSmStreet)
 			end
 		end, 
 		function(msg)
-			print("Error Handler: ", msg, debug.traceback())  -- not working?
-			return msg..debug.traceback()
+			-- print("Error Handler: ", msg, debug.traceback())
+			return msg.."\n"..debug.traceback()
 		end)
 		if not status then
 			print("Callback ERROR", ret)
@@ -129,7 +129,7 @@ function s.SimpleProposal(nodes,edges)
 	end
 	
 	local function getNodePos(nodeId)
-		local node = nodes[nodeId]
+		local node = nodes[assert(nodeId, nodeId)]
 		if node then
 			if node.id then  -- node replaced in simpleproposal_seq
 				return node.comp.position
@@ -142,32 +142,42 @@ function s.SimpleProposal(nodes,edges)
 		end
 	end
 	
-	local function getNodeTan(nodeId,diff,mirror)
-		local node = getNode(nodeId)
-		if not node.tangent then
+	local function getNodeTan(nodeId,tangent,diff,reversetopath,etype)
+		if not tangent then
 			return
 		end
-		local n0 = node.path_predecessor
-		local n2 = node.path_successor
+		local n0 = assert(getNode(nodeId)[string.format("path_%s_predecessor",etype)], "Node no path_predecessor "..nodeId)
+		local n2 = assert(getNode(nodeId)[string.format("path_%s_successor",etype)], "Node no path_successor "..nodeId)
 		local n0pos = getNodePos(n0)
 		local pos = getNodePos(nodeId)
 		local n2pos = getNodePos(n2)
 		local length = tools.VecDist(diff)
-		local v = api.type.Vec3f.new(  -- assuming node.tangent vector has length 1
-			node.tangent[1]*length*(mirror and -1 or 1),
-			node.tangent[2]*length*(mirror and -1 or 1),
-			-- diff.z
-			((n2pos.z-pos.z)/tools.VecDist(n2pos-pos)/2 + (pos.z-n0pos.z)/tools.VecDist(pos-n0pos)/2)*length*(mirror and -1 or 1)
-		)
-		local ang = tools.VecAngleCos(v,diff)
-		if ang<0 and not mirror then  -- vector other direction
-			return getNodeTan(nodeId,diff,true)
+		local tangZ -- = (n2pos.z-n0pos.z)/tools.VecDist(n2pos-n0pos)*length -- same formula as for xy tangents. but leads to excessive slope ends
+		local tangZ01 = (pos.z-n0pos.z)/tools.VecDist(pos-n0pos)
+		local tangZ12 = (n2pos.z-pos.z)/tools.VecDist(n2pos-pos)
+		if tangZ12/tangZ01<0 then  -- rise and fall
+			tangZ = 0
 		else
-			if ang<0.8 then	
-				print("WARNING Angle<0.8: "..ang.." for node "..nodeId)
+			if math.abs(tangZ01)>math.abs(tangZ12) then  -- keep slopes low at the starts/ends
+				tangZ = tangZ12*length
+			else
+				tangZ = tangZ01*length
 			end
-			return v
+		end			
+		local tang = api.type.Vec3f.new(
+			tangent[1],
+			tangent[2],
+			tangZ *(reversetopath and -1 or 1)
+		)
+		if tang.z/diff.z<0 then
+			print("WARNING: different sign tangZ"..toString(tang).." - diff".. toString(diff))
 		end
+		local ang3d = tools.VecAngleCos(tang,diff)
+		local ang2d = tools.VecAngleCos(tools.Vec2f(tangent),tools.Vec2f{diff.x,diff.y})
+		if ang2d<0.8 then
+			print("WARNING: Diff tang Angle: "..ang.." for node "..nodeId)
+		end
+		return tang
 	end
 	
 	-- had to move nodes ids AFTER edges ONLY because of stupid assert when EdgeObjects are added: src/Game/scripting/util.cpp:131: struct construction_builder_util::Proposal __cdecl scripting::Convert(const struct street_util::StreetToolkit &,const struct scripting::Proposal &): Assertion `eo.edgeEntity.GetId() < 0 && eo.edgeEntity.GetId() >= -(int)result.proposal.addedSegments.size()' failed.
@@ -192,6 +202,16 @@ function s.SimpleProposal(nodes,edges)
 		local edge, edgeobjects = s.Edge(-1-idx, edgedata, getNodeEntity, getNodePos, getNodeTan)
 		if edge then
 			sp.edgesToAdd:add(edge)
+			if edgedata.street and edgedata.street.type=="waterstream" then
+				for jd,node in pairs(sp.nodesToAdd) do
+					if node.entity==edge.comp.node0 or node.entity==edge.comp.node1 then
+						node.comp.position.z = node.comp.position.z - ({
+							stream = 1,
+							river = 2.2,
+						})[edgedata.street.waterwaytype]  -- lower streams into terrain. tangent?
+					end
+				end
+			end
 		end
 		for _,edgeobject in pairs(edgeobjects or {}) do
 			sp.edgeObjectsToAdd:add(edgeobject)
@@ -201,10 +221,10 @@ function s.SimpleProposal(nodes,edges)
 	return p
 end
 
-function s.Node(entity,node)
+function s.Node(id,node)
 	local n = api.type.NodeAndEntity.new()
-	assert(entity<0)
-	n.entity = entity or -1
+	assert(id<0)
+	n.entity = id or -1
 	assert(n.entity<0)  -- int32 ?
 	local position = node.pos
 	n.comp.position = api.type.Vec3f.new(
@@ -213,7 +233,7 @@ function s.Node(entity,node)
 		position[3] or tools.getTerrainZ(position[1], position[2])
 	)
 	if not tools.isValidCoordinate(position[1], position[2]) then
-		print("Node "..entity, "pos out of map: "..toString(position))
+		print("Node "..id, "pos out of map: "..toString(position))
 		if options().skip_nodes_outofbounds then
 			return false
 		end
@@ -222,20 +242,25 @@ function s.Node(entity,node)
 	return n
 end
 
-function s.Edge(entity,edge,getNodeEntity,getNodePos,getNodeTan)
+function s.Edge(id,edge,getNodeEntity,getNodePos,getNodeTan)
 	local e = api.type.SegmentAndEntity.new()
-	assert(entity<0)
-	e.entity = entity or -1
-	assert(e.entity<0)  -- int32 ?
-	--e.playerOwned
+	assert(id<0)
+	e.entity = id or -1
+	assert(e.entity<0)
 	
-	e.comp.node0 = getNodeEntity( assert(edge.node0, "No node0 for entity: "..entity))
-	e.comp.node1 = getNodeEntity( assert(edge.node1, "No node1 for entity: "..entity))
+	local playerOwnedComponent = api.type.PlayerOwned.new()
+	playerOwnedComponent.player = game.interface.getPlayer()
+	e.playerOwned = playerOwnedComponent  -- lock streets to prevent automatic town development
+	
+	local etype = edge.track and "track" or "street"
+	
+	e.comp.node0 = getNodeEntity( assert(edge.node0, "No node0 for entity: "..id))
+	e.comp.node1 = getNodeEntity( assert(edge.node1, "No node1 for entity: "..id))
 	
 	local tang_straight = getNodePos(edge.node1) - getNodePos(edge.node0)  -- straight edge
-	local tracks_curved = true --options().tracks_curved
-	e.comp.tangent0 = edge.track and tracks_curved and getNodeTan(edge.node0,tang_straight) or tang_straight
-	e.comp.tangent1 = edge.track and tracks_curved and getNodeTan(edge.node1,tang_straight) or tang_straight
+	local curved = true
+	e.comp.tangent0 = curved and getNodeTan(edge.node0, edge.tangent0, tang_straight, edge.reversetopath, etype) or tang_straight
+	e.comp.tangent1 = curved and getNodeTan(edge.node1, edge.tangent1, tang_straight, edge.reversetopath, etype) or tang_straight
 	
 	local skip_tracks_shorter_than = options().skip_tracks_shorter_than
 	local tang_length = tools.VecDist(e.comp.tangent0)
@@ -264,7 +289,10 @@ function s.Edge(entity,edge,getNodeEntity,getNodePos,getNodeTan)
 			return
 		end
 		e.trackEdge.trackType = api.res.trackTypeRep.find(ttype)
-		assert(e.trackEdge.trackType>=0 or debugPrint(track), "Track Type not found: '"..ttype.."'")
+		if e.trackEdge.trackType<0 then
+			print("ERROR: Track Type not found: '"..ttype.."' track"..toString(track).." (Mod missing?)")
+			assert(not options().crash_type_not_found)
+		end
 		e.trackEdge.catenary = not not track.electrified  -- bool()
 		if track.reverse then  -- reverse added from certain track type
 			e.comp.node0, e.comp.node1 = e.comp.node1, e.comp.node0
@@ -278,7 +306,10 @@ function s.Edge(entity,edge,getNodeEntity,getNodePos,getNodeTan)
 			return
 		end
 		e.streetEdge.streetType = api.res.streetTypeRep.find(stype)
-		assert(e.streetEdge.streetType>=0 or debugPrint(street), "Street Type not found: '"..stype.."'")
+		if e.streetEdge.streetType<0 then
+			print("ERROR: Street Type not found: '"..stype.."' street"..toString(street).." (Mod missing?)")
+			assert(not options().crash_type_not_found)
+		end
 		e.streetEdge.hasBus = street.buslane or false
 		e.streetEdge.tramTrackType = (street.tram==true and 2) or (street.tram==false and 1) or 0
 	else
@@ -286,27 +317,34 @@ function s.Edge(entity,edge,getNodeEntity,getNodePos,getNodeTan)
 	end
 	
 	if edge.bridge then
-		if options().build_bridges then
-			e.comp.type = 1
-			local bridgeType = bridgetypes.getType(edge)
-			if not bridgeType then
-				return
-			end
-			e.comp.typeIndex = api.res.bridgeTypeRep.find(bridgeType)
-			assert(e.comp.typeIndex>=0 or debugPrint(edge), "Bridge Type not found: '"..bridgeType.."'")
-		else
+		if not options().build_bridges then
 			return
+		end
+		e.comp.type = 1
+		local bridgeType = bridgetypes.getType(edge)
+		if not bridgeType then
+			return
+		end
+		e.comp.typeIndex = api.res.bridgeTypeRep.find(bridgeType)
+		if e.comp.typeIndex<0 then
+			print("ERROR: Bridge Type not found: '"..bridgeType.."' edge"..toString(edge).." (Mod missing?)")
+			assert(not options().crash_type_not_found)
 		end
 	end
 	
 	if edge.tunnel then
-		if options().build_tunnels then
-			e.comp.type = 2
-			local tunnelType = tunneltypes.getType(edge)
-			e.comp.typeIndex = api.res.tunnelTypeRep.find(tunnelType)
-			assert(e.comp.typeIndex>=0 or debugPrint(edge), "Tunnel Type not found: '"..tunnelType.."'")
-		else
+		if not options().build_tunnels then
 			return
+		end
+		e.comp.type = 2
+		local tunnelType = tunneltypes.getType(edge)
+		if not tunnelType then
+			return
+		end
+		e.comp.typeIndex = api.res.tunnelTypeRep.find(tunnelType)
+		if e.comp.typeIndex<0 then
+			print("ERROR: Tunnel Type not found: '"..tunnelType.."' edge"..toString(edge).." (Mod missing?)")
+			assert(not options().crash_type_not_found)
 		end
 	end
 	
@@ -323,6 +361,11 @@ function s.Edge(entity,edge,getNodeEntity,getNodePos,getNodeTan)
 				print("Signal mdls: "..toString(types))
 			end
 			for _,sigmdl in pairs(types) do
+				if api.res.modelRep.find(sigmdl)<0 then
+					print("ERROR: Signal not found: '"..sigmdl.."' (Mod missing?)")
+					assert(not options().crash_type_not_found)
+					break
+				end
 				local offset = (signaltypes.isWaypoint(sigmdl) and 0 or 8) + 2  -- 2m before catenary pole; move signal 8m (Signal Distance)
 				local distance = ((tang_length-offset) > 0 and (tang_length-offset) or 1) - (#eos)  -- multiple signals cannot be at the same place -> place 1m before each other
 				if signal.direction_backward then
@@ -356,25 +399,5 @@ function s.EdgeObject(entity,object)
 	eo.playerEntity = game.interface.getPlayer()
 	return eo
 end
-
-function s.Context()
-	local c = api.type.Context.new()
-	--c.checkTerrainAlignment = false
-	--c.cleanupStreetGraph = false
-	-- gatherBuildings = false
-	--gatherFields = true
-	return c
-end
-
--- causing weird self calls ???
--- for fname,desc in pairs(doc) do
-	-- local func = s[fname]
-	-- s[fname] = {
-		-- __doc__ = desc,
-	-- }
-	-- setmetatable(s[fname], {
-		-- __call = func,
-	-- })
--- end
 
 return s

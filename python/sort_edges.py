@@ -1,4 +1,4 @@
-# sorting order
+# sorting order, edges will be build in this order by type
 
 railtypes = [  # https://wiki.openstreetmap.org/wiki/Key:railway
     "rail",
@@ -12,8 +12,9 @@ railtypes = [  # https://wiki.openstreetmap.org/wiki/Key:railway
     "construction",
 ]
 
-highwaytypes = [  # https://wiki.openstreetmap.org/wiki/Highways
+highwaytypes = [  # https://wiki.openstreetmap.org/wiki/Key:highway
     "aeroway",
+    # actual streets
     "raceway",
     "motorway",
     "motorway_link",
@@ -30,19 +31,41 @@ highwaytypes = [  # https://wiki.openstreetmap.org/wiki/Highways
     "unclassified",
     "service",
     "construction",
+    # paths
     "pedestrian",
     "footway",
     "cycleway",
     "path",
     "track",
     "bridleway",
+    # streams
     "waterstream",
 ]
 # move types to ignoredtypes to omit them from the output data
-ignoredtypes = [
+
+ignored_highway_types = {
+    # place ignored types here:
+
+    # highway types from OSM, which are not actual streets
     "steps",
     "platform",
-]
+    "corridor",
+    "bus_stop",
+    "escape",
+    "busway",
+    "bus_guideway",
+    "road",
+    "via_ferrata",
+    "elevator",
+    "emergency_bay",
+    "rest_area",
+    "services",
+    "razed",
+    "abandoned",
+    "disused",
+    "proposed",
+    "planned",
+}
 
 
 def sort(edges):
@@ -62,7 +85,7 @@ def sort(edges):
             if htype in streets:
                 streets[htype].append(edge)
             else:
-                if htype not in ignoredtypes:
+                if htype not in ignored_highway_types:
                     print(f"Unknown highway type: {htype} {eid}")
     print("\n  ".join([f"Track Edges (rail types): {sum(len(tracks[rtype]) for rtype in railtypes)}",
                        *[f"{rtype}: {len(tracks[rtype])}" for rtype in railtypes]]))

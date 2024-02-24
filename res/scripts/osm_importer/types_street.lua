@@ -12,16 +12,16 @@ function st.getType(street,options)
 	if options.build_autobahn==false and (street.type=="motorway" or street.type=="trunk") and street.oneway then
 		return
 	end
-	if options.build_edges_street_types==false and st.osmtypes_street[street.type] then
+	if options.build_streets_street_types==false and st.osmtypes_street[street.type] then
 		return
 	end
-	if options.build_edges_footway_types==false and st.osmtypes_footways[street.type] then
+	if options.build_streets_footway_types==false and st.osmtypes_footways[street.type] then
 		return
 	end
-	if options.build_edges_water==false and st.osmtypes_water[street.type] then
+	if options.build_streets_water==false and st.osmtypes_water[street.type] then
 		return
 	end
-	if options.build_edges_airport==false and st.osmtypes_airport[street.type] then
+	if options.build_streets_airport==false and st.osmtypes_airport[street.type] then
 		return
 	end
 	local type_data = st.types[street.type]
@@ -107,7 +107,8 @@ local marc26_tramstreet = {  -- marc_strassetram_1
 	s1lane_ow = "standard/town_medium_one_way_new_tram.lua",
 	s2lane_ow = "standard/town_large_one_way_new_tram.lua",
 	s3lane_ow = "standard/town_x_large_one_way_new_tram.lua",
-	small_grass = "standard/town_verysmall_new_tramgras.lua",
+	grass_small = "standard/country_verysmall_new_tramgras.lua",  --6m
+	grass_verysmall = "standard/country_verysmall_one_way_new_tramgras.lua",  --2m
 }
 local majuen_smp = {  -- majuen_smp_1
 	bikelane = "standard/town_middle_bikelane.lua",
@@ -150,15 +151,15 @@ local mel_autobahn = {  -- Autobahn_Kreuz_1
 	oneway_1lane = "Autobahn_ausfahrt.lua",
 	oneway_2lane = "Autobahn_ausfahrt_medium.lua",
 }
-local rutel_bach = {  -- Rutel_Brook_1
-	brook1m = "brook_slow_tiny.lua",
-	brook2m = "brook_slow_small.lua",
-	brook3m = "brook_slow_narrow.lua",
-	brook4m = "brook_slow_normal.lua",
-	brook5m = "brook_slow_wide.lua",
-	brook7m = "brook_slow_large.lua",  -- warum denkt eig irgendjemand, diese größenangaben von UG wären sinnvoll?
-	brook10m = "brook_slow_huge.lua",
-}
+-- local rutel_bach = {  -- Rutel_Brook_1
+	-- brook1m = "brook_slow_tiny.lua",
+	-- brook2m = "brook_slow_small.lua",
+	-- brook3m = "brook_slow_narrow.lua",
+	-- brook4m = "brook_slow_normal.lua",
+	-- brook5m = "brook_slow_wide.lua",
+	-- brook7m = "brook_slow_large.lua",
+	-- brook10m = "brook_slow_huge.lua",
+-- }
 local relozu_wattex = {  -- relozu_terrain_material_water_1
 	gray4m = "zzwk_waterways/relozu_wk_water_03_country_small.lua",
 	gray8m = "zzwk_waterways/relozu_wk_water_03_country_medium.lua",
@@ -212,7 +213,7 @@ st.types = {  -- tag "highway"
 		ow = function(street)
 			if street.country~=false then
 				return {
-					easybr_rtp.land_ow1,
+					mel_autobahn.oneway_1lane,
 					easybr_rtp.land_ow2,
 				}
 			else  -- urban
@@ -363,9 +364,12 @@ st.types = {  -- tag "highway"
 		concrete = easybr_rtp.fus_asphalt,
 		paved = easybr_rtp.fus_asphalt,
 		paving_stones = av_extroads.hexagon3m,
+		["paving_stones:30"] = av_extroads.hexagon3m,
+		["paving_stones:double_t"] = av_extroads.hexagon3m,
 		sett = jf_roads.pflasterweg,
 		cobblestone = jf_roads.pflasterweg,
 		unhewn_cobblestone = jf_roads.pflasterweg,
+		["cobblestone:flattened"] = jf_roads.pflasterweg,
 		compacted = easybr_rtp.feld_unsichtb,
 		unpaved = easybr_rtp.feld_unsichtb,
 		gravel = easybr_rtp.fus_schotter,
@@ -376,7 +380,8 @@ st.types = {  -- tag "highway"
 		mud = easybr_rtp.fus_erde,
 		dirt = easybr_rtp.fus_erde,
 		wood = easybr_rtp.fus_erde,
-		grass = marc26_tramstreet.small_grass,
+		grass = jf_roads.feldweg,  --marc26_tramstreet.grass_verysmall,
+		["grass;ground"] = jf_roads.feldweg,
 		sand = jf_roads.feldweg,
 		-- grass_paver = ,
 		woodchips = easybr_rtp.fus_erde,
@@ -484,8 +489,13 @@ st.types = {  -- tag "highway"
 			return easybr_rtp.fus_asphalt
 		end,
 	},
-	waterstream = function(river)
-		local width = river.width or 3
+	waterstream = function(data)
+		local width
+		if data.waterwaytype=="stream" then
+			width = data.width or 3
+		elseif data.waterwaytype=="river" then  --build only small rivers
+			width = data.width or (data.boat and 30 or 15)
+		end
 		-- if width<2 then
 			-- return rutel_bach.brook1m
 		-- elseif width<3 then
@@ -501,9 +511,12 @@ st.types = {  -- tag "highway"
 		-- end
 		if width<6 then
 			return relozu_wattex.blue4m
-		else 
-			return relozu_wattex.blue8m
+		elseif width<12 then
+			return relozu_wattex.gray8m
+		elseif width<20 then
+			return relozu_wattex.gray16m  -- looks a bit more natural
 		end
+		return ""
 	end,
 	aeroway = function(data)
 		if data.subtype=="runway" then

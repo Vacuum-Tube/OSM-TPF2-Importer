@@ -104,8 +104,9 @@ local ks = {
 	vsig = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1.mdl",
 	vsig_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_links.mdl",
 	vsig_wdh = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_w.mdl",
-	vsig_wdh_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_w_links.mdl",
-	vsig_zs3v_80q_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_zs3v_80_links.mdl",
+	-- vsig_wdh_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_w_links.mdl",  --bug
+	vsig_wdh_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks2_w_links.mdl",
+	vsig_zs3v_80_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_zs3v_80_links.mdl",
 	sh1_high = "railroad/ks_signale/ls/ks_ls_hoch_hp0_sh1.mdl",
 	sh1_low = "railroad/ks_signale/ls/ks_ls_niedrig_hp0_sh1.mdl",
 	sh1_low_left = "railroad/ks_signale/ls/ks_ls_niedrig_hp0_sh1_links.mdl",
@@ -144,11 +145,11 @@ function st.getTypes(signal)
 	end
 	
 	if signal.crossing then
-		add(bue.buesig)
+		add(bue.buesig)  -- DE-ESO:bü
 	end
 
 	if signal.crossingdistant then
-		add(bue.buesig)
+		-- DE-ESO:bü2
 	end
 
 	if signal.route then
@@ -313,7 +314,9 @@ function st.speedlimit(signal)
 			if res then 
 				return res
 			else
-				print("ERROR no signal DE-ESO:zs3 found for speed:",signal.speedlimit_speed_int)
+				if signal.speedlimit_speed_int~=nil then
+					print("ERROR no signal DE-ESO:zs3 found for speed:",signal.speedlimit_speed_int)
+				end
 			end
 		end
 	elseif signal.speedlimit=="DE-ESO:lf7" then  -- sign
@@ -330,7 +333,9 @@ function st.speedlimitdistant(signal)
 			if res then 
 				return res
 			else
-				print("ERROR no signal DE-ESO:zs3v found for speed:",signal.speedlimitdistant_speed_int)
+				if signal.speedlimitdistant_speed_int~=nil then
+					print("ERROR no signal DE-ESO:zs3v found for speed:",signal.speedlimitdistant_speed_int)
+				end
 			end
 		end
 	elseif signal.speedlimitdistant=="DE-ESO:lf6" then  -- sign
