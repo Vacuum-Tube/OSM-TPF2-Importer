@@ -2,12 +2,12 @@
 
 # OSM-TPF2 Importer
 
-This is an OpenStreetMap Import Tool for Transport Fever 2 for the automated reconstruction of real world places.
+This is an OpenStreetMap Import Tool for [Transport Fever 2](https://www.transportfever2.com/) for the automated reconstruction of real world places.
 
 Few TPF2 players have dared to start a "Replication" project (virtual reconstruction of real environments) and maybe you already thought of rebuilding your home town.
 However, often motivation runs out after a while, simply because of the sheer number of tracks, roads, buildings, vegetation, etc to rebuild, quickly becoming monotonous.
 
-OpenStreetMap (OSM) provides worldwide, detailed, and accessible map data and includes streets, railways, buildings, vegetation and much more.
+OpenStreetMap (OSM) provides worldwide, detailed, and accessible map data, including streets, railways, buildings, vegetation and much more.
 This tool aims at using this data to bring it into TPF2 in an automated way.
 Currently, tracks, streets, forests, town labels, and some point objects can be imported.
 
@@ -21,13 +21,12 @@ I created a comprehensive tutorial, but I don't cover TPF2 basics.
 While dealing with OSM data and the TPF2 modding interface, several challenges have been encountered and approached in this tool in order to convert, transform, and optimize the OSM data accordingly and make it usable in a sandbox transport game, as Transport Fever 2.
 
 Demonstration Video: https://youtu.be/V_L-CaPWk1Y
+  --  More pictures [here](https://www.transportfever.net/gallery/album/3768)
 
-More pictures [here](https://www.transportfever.net/gallery/album/3768-realnachbau-frankfurt/)
-
-[![OSM Importer Demonstration Video](https://img.youtube.com/vi/V_L-CaPWk1Y/maxresdefault.jpg)](https://youtu.be/V_L-CaPWk1Y) <!---#mqdefault-->
+[![OSM Importer Demonstration Video](https://img.youtube.com/vi/V_L-CaPWk1Y/maxresdefault.jpg)](https://youtu.be/V_L-CaPWk1Y)
 
 
-## Bascis for Map creation
+## Basics for Map creation
 
 Before using this tool, you should be familiar with the basics of TPF2 and map creation in general.
 Basic information, considerations, and requirements for "Replication" projects can be found in my [article in the forum](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2/) (german).
@@ -40,7 +39,7 @@ Before applying OSM-Importer, you need to define your area of interest, create a
 [OpenStreetMap (OSM)](https://www.openstreetmap.org/) has been a successful project since 2004 to establish a free, open map database that anyone can contribute to. 
 The database consists of streets, footpaths, railway lines, building outlines, power lines, land use (e.g. forests), ... and even objects such as garbage cans. 
 Not all data is displayed on the main page.
-Some may know [OpenRailwayMap](https://www.openrailwaymap.org/), which uses the same data basis, but a different visualization (e.g. for signals or demolished tracks).
+Some may know [OpenRailwayMap](https://www.openrailwaymap.org/), which uses the same data basis, but a different visualization (e.g. signals or demolished tracks).
 
 There are 3 basic element types in OSM: 
 - Nodes (points with coordinates)
@@ -82,7 +81,7 @@ The following information from OSM data is used and extracted for the automated 
     - bollards
     - Litfaßsäulen
 
-Unfortunately, not all data can be used for automation.
+Not all data can be used for automation.
 For example, stations are mapped in detail in OSM, but have to be manually built in TPF2.
 Building contours are extensively mapped, but there is no simple way to create appropriate automation for this.
 The OSM landuse data cannot be used due to a missing interface in TPF2 to draw ground textures.
@@ -176,7 +175,7 @@ Most notably, [Build with Collision](https://steamcommunity.com/sharedfiles/file
 
 
 ## Issues & Contact
-For issues, questions, and feedback, please use the Issues Tab or Discussions in Github or the [forum thread](https://www.transportfever.net/thread/20034-osm-importer-automatisierter-nachbau-mit-openstreetmap/). 
+For issues, questions, and feedback, please use the Issues Tab or Discussions in Github, the [forum thread](https://www.transportfever.net/thread/20034-osm-importer-automatisierter-nachbau-mit-openstreetmap/) or [Steam](https://steamcommunity.com/app/1066780/discussions/0/4344355442314070256/). 
 
 For other requests: vacuumtubetrain@gmail.com 
 (but I cannot provide support for TPF2 basics, please use Steam or [transportfever.net](https://www.transportfever.net/) for that)

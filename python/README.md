@@ -6,9 +6,10 @@ convenient Lua file. You need to adjust some information in the main.py file and
 
 # Usage
 
-You need [Python](https://www.python.org/downloads/) to run the code. You can either install it on your own with the
-required packages (I used 3.9) or use my Virtual environment if you are on Windows. Put the venv folder (find in
-Releases) in this "python" folder. You can then simply execute [run_venv.bat](run_venv.bat).
+You need [Python](https://www.python.org/downloads/) to run the code. 
+You can either install it on your own with the required packages (I used 3.9) or use my [Virtual environment](https://github.com/Vacuum-Tube/OSM-TPF2-Importer/files/14394830/venv_windows.zip) (find in Releases) if you are on Windows. 
+Put the venv folder in this "python" folder. 
+You can then simply execute [run_venv.bat](run_venv.bat).
 
 In [main.py](main.py), specify `INFILE` with your exported OSM file. In case you use a predefined OSM file (e.g.
 Geofabrik) with an area larger than your TPF2 map, you need to crop it to your map bounds before by

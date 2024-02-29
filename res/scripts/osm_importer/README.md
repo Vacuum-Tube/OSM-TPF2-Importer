@@ -30,8 +30,9 @@ require "osm_importer.main"
 
 ## __1. Town Labels__
 
-The first step creates town labels for some of the OSM mapped "places" like towns and quarters. 
-All places of the map excerpt can be found in the converter log and those being used are defined in [convert_data.py](/python/convert_data.py) (at "places" L150).
+The first step creates town labels for some of the OSM mapped "[places](https://wiki.openstreetmap.org/wiki/Key:place)" like towns and quarters. 
+All places of the map excerpt can be found in the converter log.
+Those being used to display are defined in [convert_data.py](/python/convert_data.py) (at "places" L130).
 
 In order to display town labels in the game, we create usual TPF2 towns, but make them empty and inactive, so they don't start to generate town buildings.
 
