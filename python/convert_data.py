@@ -34,29 +34,8 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         "objects": [],
     }
 
-    places = {
-        "state": [],
-        "province": [],
-        "region": [],
-        "county": [],
-        "district": [],
-        "municipality": [],
-        "city": [],
-        "town": [],
-        "village": [],
-        "hamlet": [],
-        "borough": [],
-        "suburb": [],
-        "quarter": [],
-        "neighbourhood": [],
-        "square": [],
-        "isolated_dwelling": [],
-        "locality": [],
-        "plot": [],
-        "farm": [],
-        "field": [],
-        "island": [],
-    }
+    places = dict((place, []) for place in ["municipality", "city", "town", "village", "suburb", "quarter",
+                                            "neighbourhood", "square"])
 
     def add_object(type, pos):
         data["objects"].append({
@@ -128,12 +107,14 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
 
         if "place" in tags:
             if "name" in tags:
+                if tags["place"] not in places:
+                    places[tags["place"]] = []
                 places[tags["place"]].append({
                     "name": tags["name"],
                     "pos": pos,
                 })
-            else:
-                print(node.tags["place"], id, "no name!")
+            # else:
+            # print(node.tags["place"], id, "no name!")
 
     print("Places found:")
     for place, nodes in places.items():
