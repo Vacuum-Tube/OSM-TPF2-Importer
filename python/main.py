@@ -8,7 +8,7 @@ import sort_edges
 from lua_remove_nil import lua_remove_nil
 
 # redirect log to file; comment out to write in console
-sys.stdout = open('log.txt', 'w')
+sys.stdout = open('log.txt', 'w', encoding='utf-8')
 
 #################################################
 
