@@ -23,7 +23,7 @@ def optimize(data):
     }
 
     # 3. Avoid very short tracks (can lead to zig-zag) and merge them
-    remove_short_edges(paths_track, g, gt, data["nodes"], data["edges"], 15)
+    remove_short_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 15)
 
     # 4. Calculate tangents for curved edge paths
     add_curve_tangents(paths_track, g)
@@ -73,7 +73,7 @@ def split_long_edges(nodes, edges, max_edge_length, etype=None):
         edges.pop(key)
 
 
-def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
+def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
     for node_ids in paths:
         # print(f"Path: {node_ids}")
         edge_removed = True
@@ -93,11 +93,11 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                     lens.append(math.inf)
             idx = min(range(len(lens)), key=lambda x: lens[x])  # argmin, find shortest edge
             if lens[idx] < min_edge_length:
-                # remove this edge; remove node at side of shorter edge, correct connected edge
                 if idx == 0:
                     succ = True
                 elif idx == len(lens) - 1:
                     succ = False
+                # try to find the better side of the edge to adjust
                 elif is_railway_crossing(g, gt, node_ids[idx]):
                     succ = True
                 elif is_railway_crossing(g, gt, node_ids[idx + 1]):
@@ -106,13 +106,13 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                     succ = True
                 elif nodes[node_ids[idx + 1]]["signal"]:
                     succ = False
-                elif not is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx + 1]) and \
-                        is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx - 1]):
+                elif is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx + 1]) != \
+                        is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx - 1]):  # node is at bridge transition
                     succ = True
-                elif not is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx + 1]) and \
+                elif is_bridge_or_tunnel(g, node_ids[idx], node_ids[idx + 1]) != \
                         is_bridge_or_tunnel(g, node_ids[idx + 2], node_ids[idx + 1]):
                     succ = False
-                elif lens[idx + 1] < lens[idx - 1]:
+                elif lens[idx + 1] < lens[idx - 1]:  # remove node at side of shorter edge
                     succ = True
                 else:
                     succ = False
@@ -126,13 +126,24 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                     node_rem = node_ids[idx]
                     node_keep = node_ids[idx + 1]
                     node_correct = node_ids[idx - 1]
-                if (is_railway_crossing(g, gt, node_rem)  # between 2 railwaycrossings or endpoints, cant remove
-                        or nodes[node_rem]["signal"]):  # dont remove signal
-                    # or is_bridge_or_tunnel(g, node_rem, node_correct)
-                    skip_edges.add((node_ids[idx], node_ids[idx + 1]))
+                # check if remove node is possible
+                if is_railway_crossing(g, gt, node_rem):
+                    print(node_rem, "is railway crossing")
                     skipped = True
-                    print("Cannot remove")
+                if nodes[node_rem]["signal"]:
+                    print(node_rem, "is signal")
+                    skipped = True
+                if is_bridge_or_tunnel(g, node_rem, node_correct) != is_bridge_or_tunnel(g, node_rem, node_keep):
+                    print("Bridge transition")
+                    skipped = True
+                if gs.has_node(node_rem):
+                    print(node_rem, "is also a street node")
+                    skipped = True
+                if skipped:
+                    skip_edges.add((node_ids[idx], node_ids[idx + 1]))
+                    print("Cannot remove", node_rem)
                     continue
+                # remove this edge and correct connected edge with other node
                 edges.pop(g.edges[node_rem, node_keep]["name"])  # remove edge from orig data
                 g.remove_edge(node_rem, node_keep)
                 edge = g.edges[node_rem, node_correct]["data"]
@@ -143,10 +154,9 @@ def remove_short_edges(paths, g, gt, nodes, edges, min_edge_length):
                     assert edge["node0"] == node_correct
                     assert edge["node1"] == node_rem
                     edge["node1"] = node_keep
-                # write to g (thought gt will not be updated)
                 g.add_edge(node_correct, node_keep, **g.edges[node_rem, node_correct])
                 g.remove_edge(node_rem, node_correct)
-                node_ids.remove(node_rem)
+                node_ids.remove(node_rem)  # remove from path
                 nodes[node_rem]["removed"] = True
                 edge_removed = True
 
@@ -205,13 +215,16 @@ def create_graphs(nodes, edges):
     g = nx.Graph()  # undirected graph
     gd = nx.DiGraph()  # directed graph
     for id, node in nodes.items():
-        g.add_node(id, pos=node["pos"])
+        g.add_node(id, **node)
+        gd.add_node(id, **node)
     for id, edge in edges.items():
         if g.has_edge(edge["node0"], edge["node1"]):  # duplicate edges can exist because of mapping errors or...
             print(f'Edge({edge["node0"]},{edge["node1"]}) {id} already exist! '
                   f'(type: {g.edges[edge["node0"], edge["node1"]]["type"]})')
             if edge["track"]:  # ...tracks on streets. priorize street.
-                continue
+                continue  # (by overiding the edge, but works only for undirected!)
+            if gd.has_edge(edge["node1"], edge["node0"]):
+                gd.remove_edge(edge["node1"], edge["node0"])  # avoid duplicate edge for directed graph
         for gi in [g, gd]:
             gi.add_edge(edge["node0"], edge["node1"], name=id, data=edge,
                         type=edge["track"] and "TRACK" or edge["street"] and "STREET")
@@ -235,7 +248,7 @@ def create_bridge_graph(g):
 
 
 def is_railway_crossing(g, gt, node):
-    return g.degree[node] == 4 and gt.degree[node] == 2
+    return g.degree[node] >= 4 and gt.degree[node] >= 2
 
 
 def is_bridge_or_tunnel(g, n0, n1):
