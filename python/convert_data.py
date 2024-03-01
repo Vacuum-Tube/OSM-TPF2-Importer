@@ -134,7 +134,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         # *places["square"],
     ]
 
-    forests_added = set()  # some forests are mapped twice, as edge and relation
+    forests_added = set()  # some forests are mapped twice, as way and relation
 
     for id, way in ways.items():
         tags = way.tags
@@ -214,50 +214,54 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                 }
 
         if tags.get("landuse") == "forest" or tags.get("natural") == "wood":
-            data["areas"]["forests"].append({
-                "polygon": list(wnodes),  # tuples not work export
-                "leaf_type": tags.get("leaf_type"),
-            })
-            forests_added.add(id)
+            if wnodes[0] != wnodes[-1]:
+                print(f"Way {id} not closed!")
+            else:
+                data["areas"]["forests"].append({
+                    "polygon": list(wnodes),  # tuples not work export
+                    "leaf_type": tags.get("leaf_type"),
+                })
+                forests_added.add(id)
 
         if tags.get("natural") == "scrub":
-            data["areas"]["shrubs"].append({
-                "polygon": list(wnodes),
-            })
+            if wnodes[0] != wnodes[-1]:
+                print(f"Way {id} not closed!")
+            else:
+                data["areas"]["shrubs"].append({
+                    "polygon": list(wnodes),
+                })
 
     def add_multipolygon(relation, area_type):
         tags = relation.tags
-        assert relation.id not in forests_added
-        forests_added.add(relation.id)
-        if tags.get("type") == "multipolygon":
-            mp = {
-                "outer": [],
-                "inner": [],
-            }
-            for member in relation.members:
-                if member.type == Relation:
-                    if member.member_id in relations:  # else out of map bounds
-                        rel = relations[member.member_id]
-                        tags = rel.tags
-                        if not (tags.get("landuse") == "forest" or tags.get("natural") == "wood"):
-                            # only add here if not otherwise being added by iterating all relations
-                            add_multipolygon(rel, area_type)
-                elif member.type == Way:
-                    if member.member_id in ways:  # else out of map bounds
-                        way = ways[member.member_id]
-                        if way.id not in forests_added:
-                            mp[member.role].append(list(way.nodes))
-                        # else:
-                        # print(f"Way {member.member_id} from Rel {relation.id} already in data.areas")
-                else:
-                    assert False
-            if len(mp["outer"]) > 0:
-                data["areas"][area_type].append({
-                    "multipolygon": mp,
-                    "leaf_type": tags.get("leaf_type"),
-                })
-        else:
-            assert False, tags.get("type")
+        if tags.get("type") != "multipolygon":
+            print(f"Relation {relation.id} not Multi Polygon!")
+            return
+        mp = {
+            "outer": [],
+            "inner": [],
+        }
+        for member in relation.members:
+            if member.type == Relation:
+                if member.member_id in relations:  # else out of map bounds
+                    rel = relations[member.member_id]
+                    add_multipolygon(rel, area_type)
+            elif member.type == Way:
+                if member.member_id in ways:  # else out of map bounds
+                    way = ways[member.member_id]
+                    # if way.nodes[0] != way.nodes[-1]: # open ways seems to be allowed for MP.. hope this will produce the correct result in TPF2
+                    #     print(f"Way {way.id} not closed")
+                    #     continue
+                    if member.role == "outer" and way.id not in forests_added or member.role == "inner":
+                        mp[member.role].append(list(way.nodes))
+                        if member.role == "outer":
+                            forests_added.add(way.id)
+                    # else:
+                    # print(f"Way {member.member_id} from Rel {relation.id} already in data.areas")
+        if len(mp["outer"]) > 0:
+            data["areas"][area_type].append({
+                "multipolygon": mp,
+                "leaf_type": tags.get("leaf_type"),
+            })
 
     for id, relation in relations.items():
         tags = relation.tags
