@@ -189,6 +189,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                         "bicycle": False if tags.get("bicycle") in {"no"} else tags.get("bicycle"),
                         "segregated": False if tags.get("segregated") == "no" else tags.get("segregated"),
                         "width": tointornil(tags.get("width")),
+                        "level": tags.get("level"),
                         "country": guess_urban_country(tags),
                         "lit": False if tags.get("lit") == "no" else tags.get("lit"),
                     } or isstream and {

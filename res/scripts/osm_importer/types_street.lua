@@ -425,6 +425,9 @@ st.types = {  -- tag "highway"
 		cobblestone = lollo_sft.cobble1m,
 	},
 	footway = function(street)
+		if street.level and street.level~=0 then
+			return ""
+		end
 		local r
 		if street.width and street.width<0.5 then
 			return lollo_sft.ultrathin
@@ -457,6 +460,9 @@ st.types = {  -- tag "highway"
 	end,
 	path = {
 		tw = function(street)
+			if street.level and street.level~=0 then
+				return ""
+			end
 			if street.segregated then
 				return majuen_smp.bikelane
 			else
@@ -469,6 +475,9 @@ st.types = {  -- tag "highway"
 			end
 		end,
 		ow = function(street)
+			if street.level and street.level~=0 then
+				return ""
+			end
 			-- return lollo_sft.asphalt1way
 			if street.surface then
 				return st.types.footway(street)
