@@ -47,7 +47,7 @@ function s.SimpleProposalSeq(data,options)
 		end
 	end
 	s.nseq = #s.seqlist
-	s.edges = {
+	s.nedges = {
 		STREET = 0,
 		TRACK = 0,
 	}
@@ -58,14 +58,17 @@ function s.SimpleProposalSeq(data,options)
 	s.count = 0
 	print("Edges:  "..s.nseq)
 	print(string.format("Estimated Time: %.0f min (%.2f h)", s.nseq/5/60, s.nseq/5/3600))
+	s.pb = s.progressWindow()
 	s.SimpleProposalSeqE()
 end
 
 function s.SimpleProposalSeqE()
 	if #s.seqlist>0 and not s.stop then
+		s.count = s.count +1
 		s.SimpleProposalSeqEdgeCmd(table.remove(s.seqlist,1), s.cbLevel, true)
+		s.pb:setProgress(s.count/s.nseq)
+		s.pb:setTask(s.edge.track and "Track: "..s.edge.track.type or s.edge.street and "Street: "..s.edge.street.type)
 	else
-		local nosuc = s.nosuc.STREET+s.nosuc.TRACK
 		print("-------------------------------------------------------------")
 		if #s.seqlist~=0 then
 			print("Process aborted !")
@@ -76,9 +79,12 @@ function s.SimpleProposalSeqE()
 		print(os.date())
 		local timedur = timer.stop()
 		print(string.format("Time: %.2f min (%.2f h)", timedur/60, timedur/3600))
+		local nosuc = s.nosuc.STREET+s.nosuc.TRACK
 		-- print(string.format("Edges build failed: %d / %d  (%.1f %%)", nosuc, s.nseq, 100*nosuc/s.nseq))
-		print(string.format("Streets build failed: %d / %d  (%.1f %%)", s.nosuc.STREET, s.edges.STREET, 100*s.nosuc.STREET/s.edges.STREET))
-		print(string.format("Tracks build failed: %d / %d  (%.1f %%)", s.nosuc.TRACK, s.edges.TRACK, 100*s.nosuc.TRACK/s.edges.TRACK))
+		print(string.format("Streets build failed: %d / %d  (%.1f %%)", s.nosuc.STREET, s.nedges.STREET, 100*s.nosuc.STREET/s.nedges.STREET))
+		print(string.format("Tracks build failed: %d / %d  (%.1f %%)", s.nosuc.TRACK, s.nedges.TRACK, 100*s.nosuc.TRACK/s.nedges.TRACK))
+		s.pb:getParent():getParent():remove()
+		s.pb = nil
 	end
 end
 
@@ -100,13 +106,12 @@ function s.SimpleProposalSeqEdgeCmd(edge,cbLevel,retryWSmStreet)
 		error("")
 	end
 	
-	s.count = s.count +1
 	if cbLevel>=1 then
 		print("Cmd Edge #"..s.count.." - "..(edge.id or "").."  "..(cbLevel>=1 and string.format("N0: %s (%s) - N1: %s (%s) - %s", edge.node0, d2.nodes[edge.node0].id or "", edge.node1, d2.nodes[edge.node1].id or"", edge.track and "TRACK" or edge.street and "highway="..edge.street.type)) .. (cbLevel>=3 and toString(d2) or ""))
 	end
 	simpleproposal.SimpleProposalCmd(d2,context,ignoreErrors,cbLevel, function(res, success)
 		local etype = edge.track and "TRACK" or edge.street and "STREET"
-		s.edges[etype] = s.edges[etype] + 1
+		s.nedges[etype] = s.nedges[etype] + 1
 		if not success then
 			s.nosuc[etype] = s.nosuc[etype] + 1
 		end
@@ -130,6 +135,14 @@ function s.getIdIfExist(node)
 	local pos = assert(s.data.nodes[node].pos)
 	local ents = game.interface.getEntities({pos=pos, radius=3}, {type="BASE_NODE"})  -- in most cases radius=0 is sufficient, but for sharp angles the node position is not in bounding box
 	return tools.getNearestNode(pos,ents,1e-3)  -- choose  existing node only if very close 
+end
+
+function s.progressWindow()
+	local pb = api.gui.comp.ProgressBar.new()
+	local window = api.gui.comp.Window.new("Progress (script will continue when closed)", pb)
+	window:addHideOnCloseHandler()
+	pb:setMinimumSize(api.gui.util.Size.new(500,10))
+	return pb
 end
 
 return s
