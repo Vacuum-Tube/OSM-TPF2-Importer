@@ -28,15 +28,19 @@ print("Bounds:", bounds)
 #################################################
 
 # 1. Parse osm xml data and put in dicts
+print("=" * 16 + " Parse OSM XML data " + "=" * 16)
 nodes, ways, relations = read_osm.read(INFILE)
 
 # 2. Convert osm data to relevant data for TPF2
+print("=" * 16 + " Convert/Transform data " + "=" * 16)
 data = convert_data.convert(nodes, ways, relations, bounds, bounds_length)
 
 # 3. Do optimizations for edges (shorting, curving)
+print("=" * 16 + " Optimize Edges/geometry " + "=" * 16)
 optimize_edges.optimize(data)
 
 # 4. Sort edges by (street)type, so more important streets get built first
+print("=" * 16 + " Sort Edges " + "=" * 16)
 data["edges"] = sort_edges.sort(data["edges"])
 
 # 5. remove nil values, makes file shorter
@@ -44,7 +48,7 @@ data = lua_remove_nil(data)
 
 #################################################
 
-# write to output
+print("=" * 16 + " Write Lua file " + "=" * 16)
 luadata.write(OUTFILE, data, indent="\t")
 print(f"Successfully converted OSM data to: '{OUTFILE}'")
 print("\n  ".join([f"Data contains:",

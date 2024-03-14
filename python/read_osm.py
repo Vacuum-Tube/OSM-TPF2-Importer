@@ -60,5 +60,5 @@ def read(filename, bounds=None):
             ways[entity.id] = entity
         elif isinstance(entity, Relation):
             relations[entity.id] = entity
-    print(f"Loaded {len(nodes)} Nodes and {len(ways)} Ways and {len(relations)} Relations")
+    print(f"Loaded {len(nodes)} Nodes / {len(ways)} Ways / {len(relations)} Relations")
     return nodes, ways, relations

@@ -5,10 +5,12 @@ from vec2 import Vec2
 
 def optimize(data):
     # 1. Avoid very long edges (can cut through terrain)
+    print("=" * 16 + " Split long Edges " + "=" * 16)
     split_long_edges(data["nodes"], data["edges"], 70, etype="street")
     split_long_edges(data["nodes"], data["edges"], 100, etype="track")
 
     # 2. Create graph and obtain paths
+    print("=" * 16 + " Create Graphs " + "=" * 16)
     g, gd = create_graphs(data["nodes"], data["edges"])
     gs = create_sub_graph(g, "STREET")
     gt = create_sub_graph(gd, "TRACK")  # we need a directed graph for the signal direction
@@ -23,15 +25,18 @@ def optimize(data):
     }
 
     # 3. Avoid very short tracks (can lead to zig-zag) and merge them
+    print("=" * 16 + " Remove short Track Edges " + "=" * 16)
     remove_short_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 15)
 
     # 4. Calculate tangents for curved edge paths
     add_curve_tangents(paths_track, g)
     add_curve_tangents(paths_street, g)
+    print("=" * 16 + " Calculate Tangents " + "=" * 16)
     add_path_info_to_nodes(paths_track, data["nodes"], "track")
     add_path_info_to_nodes(paths_street, data["nodes"], "street")
 
     # 5. Add signal information to edges
+    print("=" * 16 + " Adjust Signals " + "=" * 16)
     adjust_signals(data["nodes"], g)
 
 
