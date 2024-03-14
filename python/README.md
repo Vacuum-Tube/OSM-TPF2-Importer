@@ -107,22 +107,35 @@ lengths.
 
 ## Curves
 
-Although streets and tracks are modeled in both OSM and TPF2 as nodes and edges, there are some differences. In maps
-like OSM and Google Maps, there exist no true curves!
-If you look closely, you can see that curves simply consist of many small (straight) segments, which is sufficient for
-the visualization. In a game like TPF2, where more accurate representation is needed, curved
-edges [are modeled with Hermite Curves](https://www.transportfever.net/lexicon/entry/356-kurven-konstruieren/). This
-requires to determine tangent vectors for the edges, which should match at each node. This is especially important for
-tracks, as otherwise your trains would go [zig-zag](https://www.youtube.com/shorts/8kS80uvRL3U). But also for streets it
-turns out that it's useful to align the tangents, at least for low intersection angles.
+Although streets and tracks are modeled in both OSM and TPF2 as nodes and edges, there are some differences. 
+In maps like OSM and Google Maps, there exist no true curves!
+If you look closely, you can see that curves simply consist of many small (straight) segments, which is sufficient for the visualization.
+In a game like TPF2, where more accurate representation is needed, curves [are modeled as Hermite Curves](https://www.transportfever.net/lexicon/entry/356-kurven-konstruieren/), i.e. [cubic splines](https://en.wikipedia.org/wiki/Cubic_Hermite_spline). 
+This requires to determine tangent vectors for the edges, which should match at each node. 
+This is especially important for tracks, as otherwise your trains would go [zig-zag](https://www.youtube.com/shorts/8kS80uvRL3U). 
+But also for streets it turns out that it's useful to align the tangents, at least for low intersection angles.
 
-To tackle this, I create graphs of the track and street network using `networkx`. This way, we can find the "paths",
-i.e. a list of nodes between crossings/endpoints (nodes with degree>2). Consequently, the normalized tangents along the
-path for a node $n_1$ with position $p_1$ can be calculated as the average of the unnormalized tangents $t_{01}=(p_1 -
-p_0)$ and $t_{12}$ of the two neighboring edges behind and after the node, which is the same as the tangent created by
-the previous and the following node:
+To tackle this, I create graphs of the track and street network using `networkx`. 
+This way, we can find the "paths", i.e. a list of nodes between crossings/endpoints (nodes with degree>2). 
+Consequently, the normalized tangents along the path for a node $n_1$ with position $p_1=(x_1,y_1)$ can be calculated as the average of the tangents $t_{01}=(p_1 - p_0)$ and $t_{12}$ of the two neighboring edges behind and after the node, which is the same as the tangent created by the previous and the following node:
 
 $normalize(t_{01}+t_{12})=normalize(p_2-p_0)$
+
+This is also known as the _Catmull–Rom spline_ and was used until version 1.1.
+A better method is the [Natual cubic spline](https://en.wikipedia.org/wiki/Spline_interpolation) because it ensures not only matching tangents but also matching curvature at the transition points!
+This is actually closer to [real track geometries](https://en.wikipedia.org/wiki/Track_geometry), which consists only of the three types: straight lines, arcs with constant radius, and [transition curves (clothoids)](https://en.wikipedia.org/wiki/Track_transition_curve).
+
+An exemplary path of OSM points and its spline with associated first two derivatives and curvature is shown.
+Obviously, OSM data is not so smooth as it looks at first.
+
+<p align="middle">
+  <img src="../doc/pics/curve.png" width="54%" />
+  <img src="../doc/pics/curve_k.png" width="44%" /> 
+</p>
+<p align="middle">
+  <img src="../doc/pics/curve_vxy.png" width="49%" />
+  <img src="../doc/pics/curve_axy.png" width="49%" /> 
+</p>
 
 With the z value, the tangent calculation is done a bit differently because the above method can lead to overshooting,
 i.e. more curvature than wanted. Here, the z-tangent at node $n_1$ is chosen as the minimum of the adjacent tangents $t_

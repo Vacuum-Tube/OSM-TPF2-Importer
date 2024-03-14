@@ -47,8 +47,6 @@ local function run()
 		build_streets_water = true,  -- use stream streets (with relozu water textures)
 		build_streets_airport = true,  -- use airport streets (airport roads mod)
 		skip_nodes_outofbounds = true,  -- avoids edges outside the map bounds (but not forests)
-		skip_tracks_shorter_than = 0,
-		skip_tracks_radius_smaller_than = 10,
 		crash_type_not_found = true,  -- abort when a resource is not available (track/street/bridge type)
 		log_level = 1,
 	}

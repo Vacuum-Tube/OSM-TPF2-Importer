@@ -142,17 +142,19 @@ function s.SimpleProposal(nodes,edges)
 		end
 	end
 	
-	local function getNodeTan(nodeId,tangent,diff,reversetopath,etype)
+	local function getNodeTan(nodeId,tangent,diff,etype)
 		if not tangent then
 			return
 		end
-		local n0 = assert(getNode(nodeId)[string.format("path_%s_predecessor",etype)], "Node no path_predecessor "..nodeId)
-		local n2 = assert(getNode(nodeId)[string.format("path_%s_successor",etype)], "Node no path_successor "..nodeId)
+		local n0 = getNode(nodeId)[string.format("path_%s_predecessor",etype)]
+		if not n0 then print( "Node no path_predecessor "..nodeId) return end
+		local n2 = getNode(nodeId)[string.format("path_%s_successor",etype)]
+		if not n2 then print("Node no path_successor "..nodeId)return end
 		local n0pos = getNodePos(n0)
 		local pos = getNodePos(nodeId)
 		local n2pos = getNodePos(n2)
 		local length = tools.VecDist(diff)
-		local tangZ -- = (n2pos.z-n0pos.z)/tools.VecDist(n2pos-n0pos)*length -- same formula as for xy tangents. but leads to excessive slope ends
+		local tangZ = 0
 		local tangZ01 = (pos.z-n0pos.z)/tools.VecDist(pos-n0pos)
 		local tangZ12 = (n2pos.z-pos.z)/tools.VecDist(n2pos-pos)
 		if tangZ12/tangZ01<0 then  -- rise and fall
@@ -167,15 +169,10 @@ function s.SimpleProposal(nodes,edges)
 		local tang = api.type.Vec3f.new(
 			tangent[1],
 			tangent[2],
-			tangZ *(reversetopath and -1 or 1)
+			tangZ 
 		)
 		if tang.z/diff.z<0 then
 			print("WARNING: different sign tangZ"..toString(tang).." - diff".. toString(diff))
-		end
-		local ang3d = tools.VecAngleCos(tang,diff)
-		local ang2d = tools.VecAngleCos(tools.Vec2f(tangent),tools.Vec2f{diff.x,diff.y})
-		if ang2d<0.8 then
-			print("WARNING: Diff tang Angle: "..ang.." for node "..nodeId)
 		end
 		return tang
 	end
@@ -259,27 +256,19 @@ function s.Edge(id,edge,getNodeEntity,getNodePos,getNodeTan)
 	
 	local tang_straight = getNodePos(edge.node1) - getNodePos(edge.node0)  -- straight edge
 	local curved = true
-	e.comp.tangent0 = curved and getNodeTan(edge.node0, edge.tangent0, tang_straight, edge.reversetopath, etype) or tang_straight
-	e.comp.tangent1 = curved and getNodeTan(edge.node1, edge.tangent1, tang_straight, edge.reversetopath, etype) or tang_straight
+	e.comp.tangent0 = curved and getNodeTan(edge.node0, edge.tangent0, tang_straight, etype) or tang_straight
+	e.comp.tangent1 = curved and getNodeTan(edge.node1, edge.tangent1, tang_straight, etype) or tang_straight
 	
-	local skip_tracks_shorter_than = options().skip_tracks_shorter_than
-	local tang_length = tools.VecDist(e.comp.tangent0)
-	if edge.track and skip_tracks_shorter_than and tang_length<skip_tracks_shorter_than then
-		print("Skip - Edge too short ",tang_length)
-		return
+	if edge.nodes_reversed then
+		e.comp.node0, e.comp.node1 = e.comp.node1, e.comp.node0
+		e.comp.tangent0, e.comp.tangent1 = tools.Vec3Mul(e.comp.tangent1, -1), tools.Vec3Mul(e.comp.tangent0, -1)
 	end
-	
-	local skip_tracks_radius_smaller_than = options().skip_tracks_radius_smaller_than
-	local tang_radius = tools.calcRadius(
+	local edge_length = tools.hermiteLength(
 		getNodePos(edge.node0),
 		getNodePos(edge.node1),
 		e.comp.tangent0,
 		e.comp.tangent1
 	)
-	if edge.track and skip_tracks_radius_smaller_than and tang_radius<skip_tracks_radius_smaller_than then
-		print("Skip - Edge too narrow radius ",tang_radius)
-		return
-	end
 	
 	if edge.track then
 		local track = edge.track
@@ -367,16 +356,16 @@ function s.Edge(id,edge,getNodeEntity,getNodePos,getNodeTan)
 					break
 				end
 				local offset = (signaltypes.isWaypoint(sigmdl) and 0 or 8) + 2  -- 2m before catenary pole; move signal 8m (Signal Distance)
-				local distance = ((tang_length-offset) > 0 and (tang_length-offset) or 1) - (#eos)  -- multiple signals cannot be at the same place -> place 1m before each other
+				local distance = ((edge_length-offset) > 0 and (edge_length-offset) or 1) - (#eos)  -- multiple signals cannot be at the same place -> place 1m before each other
 				if signal.direction_backward then
-					distance = tang_length - distance
+					distance = edge_length - distance
 				end
 				local eo = s.EdgeObject(e.entity, {
 					model=sigmdl, 
 					name=(signal.ref or "").." "..toString(signal), 
 					left=signal.direction_backward, 
 					distance=distance, 
-					length=tang_length
+					length=edge_length
 				})
 				table.insert(eos, eo)
 				table.insert(objects, { -(#eos), 2 }) -- First value: negative idx in EdgeObject to add; Second value EdgeObjectType: 0 (STOP_LEFT), 1 (STOP_RIGHT), 2 (SIGNAL)

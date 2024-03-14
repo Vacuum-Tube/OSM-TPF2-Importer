@@ -74,8 +74,6 @@ options = {
 	build_streets_water = true,
 	build_streets_airport = true,
 	skip_nodes_outofbounds = true,
-	skip_tracks_shorter_than = 0,
-	skip_tracks_radius_smaller_than = 10,
 	crash_type_not_found = true,
 	log_level = 1,
 }
@@ -148,8 +146,6 @@ The highway types to build can be configured more specifically in [sort_edges.py
 
 ### Other:
 - **skip_nodes_outofbounds**: Avoids edges outside the map bounds (but not forests).
-- **skip_tracks_shorter_than**: Skip track edges shorther than the value in meters.
-- **skip_tracks_radius_smaller_than**: Skip track edges more narrow than the curvature in meters.
 - **crash_type_not_found**: Abort the process when a resource is not available (track/street/bridge type). It is advised to leave this on while testing to find missing mods. In the final import, it could be set to false to continue until the end.
 - **log_level**: The amount of information printed in the stdout. You may only need to increase it if there is an error and I need more details.
 

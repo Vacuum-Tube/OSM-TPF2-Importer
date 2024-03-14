@@ -1,6 +1,9 @@
 local t = {}
 
 require "serialize"
+local vec3 = require "vec3"
+local streetutil = require "streetutil"
+
 
 function t.list2dict(list)
 	local dict = {}
@@ -37,9 +40,20 @@ function t.VecDist(v1,v2)
 	return math.sqrt(t.VecNorm(v1,v2))
 end
 
+function t.VecNormalize(v)
+	return t.Vec3Mul(v, 1/t.VecDist(v))
+end
+
 function t.VecAngleCos(v1,v2)
 	return v1*v2/t.VecDist(v1)/t.VecDist(v2)
 end
+
+function t.hermiteLength(p0, p1, t0, t1)
+	local dist = t.VecDist(p1, p0)
+	local angle = vec3.angleUnit(t.VecNormalize(t0), t.VecNormalize(t1))
+	return streetutil.calcScale(dist, angle)
+end
+
 
 function t.getTerrainZ(x,y)
 	return api.engine.terrain.getHeightAt(api.type.Vec2f.new(x, y))  --getBaseHeightAt
@@ -65,14 +79,5 @@ function t.getNearestNode(pos,bnodelist,maxdist)
 	return nnode
 end
 
-function t.calcRadiusAndAngle(p0,p1,t0,t1)
-	local r = ( ( t1.x*(p0.x-p1.x) + t1.y*(p0.y-p1.y) ) / (t0.y*t1.x-t0.x*t1.y) ) * math.sqrt(t0.x^2 + t0.y^2)
-	local a = math.acos( (t0.x*t1.x+t0.y*t1.y) / math.sqrt( (t0.x^2 + t0.y^2) * (t1.x^2 + t1.y^2) ) )
-	return math.abs(r) , a
-end
-
-function t.calcRadius(p0,p1,t0,t1)
-	return math.abs( ( ( t1.x*(p0.x-p1.x) + t1.y*(p0.y-p1.y) ) / (t0.y*t1.x-t0.x*t1.y) ) * math.sqrt(t0.x^2 + t0.y^2) )
-end
 
 return t

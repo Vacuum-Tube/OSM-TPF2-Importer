@@ -63,6 +63,6 @@ You can skip "Berlin Stadtbahn Viaduct Construction" if you are sure that [your 
 
 ## Additional useful mods for Replication projects that should be activated BEFORE the osm import
 
-- Realistic Railway Slopes (reduce embankment to avoid trouble with height differences: Embankment Slope: 1, Embankment Slope High: off) https://steamcommunity.com/sharedfiles/filedetails/?id=2161175689
-- Maximum Street Slopes (reduce embankment to avoid trouble with height differences: Embankment Slope: 1, Embankment Slope High: off) https://steamcommunity.com/sharedfiles/filedetails/?id=2206802861
-- Realistic Track Curve Speeds https://steamcommunity.com/sharedfiles/filedetails/?id=2558586098
+- Realistic Railway Slopes; to reduce embankment to avoid trouble with height differences (Embankment Slope: 1, Embankment Slope High: off) https://steamcommunity.com/sharedfiles/filedetails/?id=2161175689
+- Maximum Street Slopes; to reduce embankment to avoid trouble with height differences (Embankment Slope: 1, Embankment Slope High: off) https://steamcommunity.com/sharedfiles/filedetails/?id=2206802861
+- Realistic Track Curve Speeds (uncheck "No superelevation at speed restricted tracks") https://steamcommunity.com/sharedfiles/filedetails/?id=2558586098

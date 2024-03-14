@@ -1,15 +1,18 @@
 import math
+import numpy as np
 
 
 class Vec2:
 
     def __init__(self, x, y=None):
-        if type(x) in {int, float}:
+        if type(x) in {int, float, np.float64, np.float32}:
             self.x = x
             self.y = y
-        elif len(x) == 2:
+        elif hasattr(x, "__iter__") and len(x) == 2:
             self.x = x[0]
             self.y = x[1]
+        else:
+            raise Exception(f"Invalid input for Vec2: ({type(x)}){x},{y}")
 
     def __str__(self):
         return f"Vec ({self.x},{self.y})"
@@ -53,12 +56,19 @@ class Vec2:
     def length(self):
         return math.sqrt(self.x ** 2 + self.y ** 2)
 
-    def normalize(self):
-        return self / self.length()
+    def normalize(self, leng=1):
+        return self * (leng / self.length())
 
     @staticmethod
     def angle_cos(v1, v2):
         return v1.normalize() ** v2.normalize()
+
+    @staticmethod
+    def angle(v1, v2):
+        sp = Vec2.angle_cos(v1, v2)
+        if 1 < abs(sp) < 1.01:
+            sp /= abs(sp)
+        return math.acos(sp)
 
     def toArray(self):
         return [self.x, self.y]

@@ -93,13 +93,13 @@ end
 
 tt.normalSpeeds = function(track)
 	local speeds = {
-		[5] = "low_speed_10.lua",
-		[10] = "low_speed_10.lua",
-		[15] = "low_speed_20.lua",
-		[20] = "low_speed_20.lua",
-		[25] = "low_speed_30.lua",
-		[30] = "low_speed_30.lua",
-		[40] = "low_speed_40.lua",
+		[5] = "standard_10.lua",
+		[10] = "standard_10.lua",
+		[15] = "standard_20.lua",
+		[20] = "standard_20.lua",
+		[25] = "standard_30.lua",
+		[30] = "standard_30.lua",
+		[40] = "standard_40.lua",
 		[50] = "low_speed_50.lua",
 		[60] = "low_speed_60.lua",
 		[70] = "low_speed_70.lua",

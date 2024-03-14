@@ -1,5 +1,8 @@
 import math
 import networkx as nx
+import numpy as np
+from scipy.interpolate import CubicSpline
+
 from vec2 import Vec2
 
 
@@ -29,9 +32,9 @@ def optimize(data):
     remove_short_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 15)
 
     # 4. Calculate tangents for curved edge paths
-    add_curve_tangents(paths_track, g)
-    add_curve_tangents(paths_street, g)
     print("=" * 16 + " Calculate Tangents " + "=" * 16)
+    add_curve_tangents(paths_track, g, method="natural", warnangle=15)
+    add_curve_tangents(paths_street, g, method="natural")
     add_path_info_to_nodes(paths_track, data["nodes"], "track")
     add_path_info_to_nodes(paths_street, data["nodes"], "street")
 
@@ -166,31 +169,75 @@ def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
                 edge_removed = True
 
 
-def add_curve_tangents(paths, g, maxangle=30):
+def add_curve_tangents(paths, g, method="finite_difference", maxangle=30, warnangle=90):
     for path in paths:
+        for n0, n1 in zip(path[:-1], path[1:]):
+            e = g.edges[n0, n1]["data"]
+            if e["node0"] == n1:
+                e["node0"], e["node1"] = e["node1"], e["node0"]  # align edge in same direction as path
+                e["nodes_reversed"] = True
+        y = [g.nodes[n]["pos"] for n in path]
+        x = [0]
+        for yi, yi1 in zip(y[:-1], y[1:]):
+            x.append(x[-1] + (Vec2(yi1) - Vec2(yi)).length())  # heuristic: linear spline length
+        if method in {"natural"}:
+            c = CubicSpline(x, y, bc_type="natural", extrapolate=False)
+            v = c.derivative(1)
+            a = c.derivative(2)
+            k = lambda t: abs(v(t)[0] * a(t)[1] - v(t)[1] * a(t)[0]) / sum(v(t) ** 2) ** 1.5  # curvature
+            cubic_tangs = {}
+            for i in range(1, len(path) - 1):
+                if Vec2(v(x[i])).length() > 0:
+                    cubic_tangs[path[i]] = Vec2(v(x[i]))
+            if Vec2(v(x[0])).length() > 0:
+                g.edges[path[0], path[1]]["data"]["tangent0"] = (Vec2(v(x[0])) * (x[1] - x[0])).toArray()
+            if Vec2(v(x[-1])).length() > 0:
+                g.edges[path[-1], path[-2]]["data"]["tangent1"] = (Vec2(v(x[-1])) * (x[-1] - x[-2])).toArray()
+            for angle in [
+                Vec2.angle(Vec2(v(x[0])), Vec2(y[1]) - Vec2(y[0])),
+                Vec2.angle(Vec2(v(x[-1])), Vec2(y[-1]) - Vec2(y[-2]))]:
+                if angle > warnangle / 180 * math.pi:
+                    print(f"WARNING start/end node {path[0]} Diff tang angle: {angle * 180 / math.pi:.3f}")
+            for i in range(1, len(path) - 1):
+                maxk = max(*(k(t) for t in np.linspace(x[i] - 0.49 * (x[i] - x[i - 1]), x[i], 10)),
+                           *(k(t) for t in np.linspace(x[i], x[i] + 0.49 * (x[i + 1] - x[i]), 10)))
+                edge = g.edges[path[0], path[1]]["data"]
+                if edge["track"] and maxk > 1 / (150 if edge["track"]["type"] == "rail" else 50):
+                    print(f"CURVE {edge['track']['type']} at {path[i]} Rmin={1 / maxk:.3f}")
         for n0, n1, n2 in zip(path[:-2], path[1:-1], path[2:]):
             p0 = Vec2(g.nodes[n0]["pos"])
             p1 = Vec2(g.nodes[n1]["pos"])
             p2 = Vec2(g.nodes[n2]["pos"])
-            t01 = (p1 - p0)  # .normalize()
-            t12 = (p2 - p1)  # .normalize()
-            if Vec2.angle_cos(t01, t12) > math.cos(maxangle / 180 * math.pi):
-                tang = (t01 + t12).normalize()
-                # nodes[n1]["tangent"] = tang.toArray()
-                e01 = g.edges[n0, n1]["data"]
-                if e01["node0"] == n0:
-                    tangent01, mirr = "tangent1", 1
+            t01 = p1 - p0
+            t12 = p2 - p1
+            e01 = g.edges[n0, n1]["data"]
+            e12 = g.edges[n1, n2]["data"]
+            if Vec2.angle(t01, t12) < maxangle / 180 * math.pi:
+                if method == "finite_difference":  # https://en.wikipedia.org/wiki/Cubic_Hermite_spline
+                    tang = (t01.normalize() + t12.normalize()) / 2
+                elif method == "Catmull–Rom":
+                    tang = (p2 - p0) / 2
+                elif method == "natural":
+                    tang = cubic_tangs.get(n1)
+                    if not tang:
+                        continue
+                    if not .7 < tang.length() < 1.5:
+                        print(f"WARNING: at {n1} spline tang length {tang}")
                 else:
-                    tangent01, mirr = "tangent0", -1
-                    e01["reversetopath"] = True
-                e01[tangent01] = (tang * t01.length() * mirr).toArray()
-                e12 = g.edges[n1, n2]["data"]
-                if e12["node0"] == n1:
-                    tangent01, mirr = "tangent0", 1
-                else:
-                    tangent01, mirr = "tangent1", -1
-                    e12["reversetopath"] = True
-                e12[tangent01] = (tang * t12.length() * mirr).toArray()
+                    raise Exception("Unknown tangent method: " + method)
+                for angle in [Vec2.angle(tang, t01), Vec2.angle(tang, t12)]:
+                    if angle > warnangle / 180 * math.pi:
+                        print(f"WARNING: node {n1} "
+                              f"{e01['street'] and 'street(' + e01['street']['type'] or 'track(' + e01['track']['type']}) "
+                              f"Diff tang angle: {angle * 180 / math.pi:.3f}")
+                if method in {"finite_difference", "Catmull–Rom"}:
+                    l01 = cubspline_apprx_length(t01.length(), Vec2.angle(t01, tang))
+                    l12 = cubspline_apprx_length(t12.length(), Vec2.angle(t12, tang))
+                    e01["tangent1"] = tang.normalize(l01).toArray()
+                    e12["tangent0"] = tang.normalize(l12).toArray()
+                elif method in {"natural"}:  # cubic spline was initialized with x (linear length)
+                    e01["tangent1"] = (tang * t01.length()).toArray()
+                    e12["tangent0"] = (tang * t12.length()).toArray()
 
 
 def add_path_info_to_nodes(paths, nodes, prefix):
@@ -208,6 +255,8 @@ def adjust_signals(nodes, g):
             if "path_track_predecessor" in node and "path_track_successor" in node:
                 edge = g.edges[nid, node["path_track_predecessor"]]
                 # place signal on edge before because of Signal Distance and so that signals are right in front of poles
+                if edge["data"].get("nodes_reversed"):
+                    node["signal"]["direction_backward"] = not node["signal"]["direction_backward"]
                 if node["signal"]["direction_backward"]:
                     edge = g.edges[nid, node["path_track_successor"]]  # need to place on edge after before pole
                 edge["data"]["objects"] = {"signal": node["signal"]}
@@ -258,6 +307,13 @@ def is_railway_crossing(g, gt, node):
 
 def is_bridge_or_tunnel(g, n0, n1):
     return bool(g.edges[n0, n1]["data"]["bridge"]) or bool(g.edges[n0, n1]["data"]["tunnel"])
+
+
+def cubspline_apprx_length(dist, angle):
+    assert 0 <= angle < math.pi / 2, angle
+    if angle < .001:
+        return dist
+    return dist * angle / math.cos(math.pi / 2 - angle / 2) / 2
 
 
 # inspired by OSMNX
