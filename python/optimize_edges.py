@@ -202,7 +202,7 @@ def add_curve_tangents(paths, g, method="finite_difference", maxangle=30, warnan
                 maxk = max(*(k(t) for t in np.linspace(x[i] - 0.49 * (x[i] - x[i - 1]), x[i], 10)),
                            *(k(t) for t in np.linspace(x[i], x[i] + 0.49 * (x[i + 1] - x[i]), 10)))
                 edge = g.edges[path[0], path[1]]["data"]
-                if edge["track"] and maxk > 1 / (150 if edge["track"]["type"] == "rail" else 50):
+                if edge["track"] and maxk > 1 / (150 if edge["track"]["type"] == "rail" else 25):
                     print(f"CURVE {edge['track']['type']} at {path[i]} Rmin={1 / maxk:.3f}")
         for n0, n1, n2 in zip(path[:-2], path[1:-1], path[2:]):
             p0 = Vec2(g.nodes[n0]["pos"])

@@ -141,11 +141,11 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         wnodes = way.nodes
 
         isstreet = "highway" in tags and tags["highway"] not in ignored_highway_types
+        istrack = tags.get("railway") in {"rail", "construction", "disused", "miniature", "narrow_gauge", "preserved",
+                                          "light_rail", "subway", "tram"}
+        issubway = tags.get("railway") in {"light_rail", "subway"}
         istram = tags.get("railway") in {"tram"} or tags.get("disused:railway") == "tram" or tags.get(
             "disused") == "tram"
-        issubway = tags.get("railway") in {"light_rail", "subway"}
-        istrack = tags.get("railway") in {"rail", "construction", "disused", "miniature", "narrow_gauge", "preserved"} \
-                  or istram or issubway
         isstream = tags.get("waterway") in {"stream", "river"} and tags.get("tunnel", "no") == "no"
         isaeroway = "aeroway" in tags and tags.get("aeroway") in {"runway", "taxiway"}
         isarea = tags.get("area") == "yes"  # closed way -> area (not always correctly set)
