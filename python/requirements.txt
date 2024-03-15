@@ -11,3 +11,5 @@ pyparsing==3.0.9
 pyproj==3.6.0
 python-dateutil==2.8.2
 utm==0.7.0
+scipy==1.12.0
+numpy==1.26.4

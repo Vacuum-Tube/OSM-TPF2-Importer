@@ -4,12 +4,41 @@ The Converter is an intermediate step between the OSM data and [OSM Builder](/re
 to facilitate the data processing and prepare it for TPF2. This tool is a Python script and converts the OSM data to a
 convenient Lua file. You need to adjust some information in the main.py file and then execute it.
 
-# Usage
+# Installation
 
-You need [Python](https://www.python.org/downloads/) to run the code. 
-You can either install it on your own with the required packages (I used 3.9) or use my [Virtual environment](https://github.com/Vacuum-Tube/OSM-TPF2-Importer/files/14394830/venv_windows.zip) (find in Releases) if you are on Windows. 
-Put the venv folder in this "python" folder. 
-You can then simply execute [run_venv.bat](run_venv.bat).
+ ## Use Python with virtual environment
+Install [Python](https://www.python.org/downloads/) (3.9).
+Windows users can download Python from the [Microsoft Store](https://apps.microsoft.com/detail/9p7qfqmjrfp7).
+
+Navigate to this "python" folder in the console.
+
+Create a local virtual environment:
+```
+python -m venv venv
+```
+
+Install the required packages:
+```
+pip install -r requirements.txt
+```
+
+You can then execute the script with
+```
+venv/Scripts/python main.py
+```
+or [run_venv.bat](run_venv.bat) if you are on Windows.
+
+
+## Method 2: Use Exe (Windows)
+---- coming soon ----
+
+If you don't want to install Python and are on Windows, you can simply use the exe application.
+Find in [Releases](https://github.com/Vacuum-Tube/OSM-TPF2-Importer/releases).
+
+
+
+
+# Usage
 
 In [main.py](main.py), specify `INFILE` with your exported OSM file. In case you use a predefined OSM file (e.g.
 Geofabrik) with an area larger than your TPF2 map, you need to crop it to your map bounds before by
@@ -60,12 +89,15 @@ bounds = {
 
 After that, you can test any subarea inside your map bounds.
 
-Now execute main.py. If it runs successfully, the output file `osmdata.lua` is created. This file is needed for the next
-step.
+Now execute main.py. 
+If it runs successfully, the output file `osmdata.lua` is created. 
+This file is needed for the next step.
 
-The log is saved to the file `log.txt`. It contains information about the OSM data, locations, and the number of
-resulting single street and track edges for TPF2, broken down by types. This will be useful later to estimate executions
-time of the constructing process and whether to include all street/path types or not due to performance reasons.
+If the file is not created because of an error, send me the log file and your osm file.
+
+The log is saved to the file `log.txt`. 
+It contains information about the OSM data, locations, and the number of resulting single street and track edges for TPF2, broken down by types. 
+This will be useful later to estimate executions time of the constructing process and whether to include all street/path types or not due to performance reasons.
 
 # Details
 

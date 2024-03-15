@@ -9,3 +9,4 @@ python/osmosis/*
 !python/osmosis/README.md
 python/osmdata.lua
 res/scripts/osm_importer/osmdata.lua
+/python/output
