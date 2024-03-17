@@ -31,7 +31,7 @@ This is important because the streets/tracks built by OSM importer should match 
 Ideally, you define the coordinates from the beginning.
 Write them down.
 
-![](/doc/pics/skydark_screenshot_osm.jpg)
+<p align="middle"><img src="pics/skydark_screenshot_osm.jpg" width="90%" /></p>
 
 You could use https://heightmap.skydark.pl/ for planning your area.
 It offers also OSM export which contains the bounds coordinates.
@@ -50,7 +50,7 @@ You will need an ingame overlay, which is ideally OSM-based as well.
 The overlay will be extremely useful to verify the import and reconstruct parts if objects are removed.
 It is also needed to continue the replication project with other OSM information.
 
-![](/doc/pics/osm_overlay.jpg)
+<p align="middle"><img src="pics/osm_overlay.jpg" width="70%" /></p>
 
 The use of a heightmap is optional, but recommended for hilly regions.
 The OSM import can also be done on a flat map, which makes things easier.
@@ -112,8 +112,10 @@ If you want to use true water (and no textures) for them, you may need to do som
 Small rivers and streams can be build as streets with water textures automatically by this tool.
 They are carved 1m in the terrain, so you don't need to prepare something.
 
-![](/doc/pics/river.jpg) 
-![](/doc/pics/lake.jpg)
+<p align="middle">
+  <img src="pics/river.jpg" width="48%" />
+  <img src="pics/lake.jpg" width="43%" />
+</p>
 
 ## Flattening
 We all know that terrain can behave weirdly in TPF2 when building on unleveled ground.
@@ -130,7 +132,7 @@ In the end, heightmaps contain errors anyway and the goal is just to represent t
 
 If your heightmap is coming from a DSM, keep in mind that the errors might be larger and e.g. forests will show unrealistic terrain increase.
 
-![](/doc/pics/flattened.jpg)
+<p align="middle"><img src="pics/flattened.jpg" width="80%" /></p>
 
 ## Terrain / Embankments
 OSM only consists of 2D data, there is no height information.
@@ -150,8 +152,10 @@ Check the slopes with [Track/Street Builder Info](https://steamcommunity.com/sha
 Smoothen the terrain around it, so other paths will have reasonable heights.
 It might make sense to build street pieces as fix points to ease the smoothening (they will be deleted later with a command anyway).
 
-![](/doc/pics/bridge_terrain.jpg)
-![](/doc/pics/bridge_osm_terrain.jpg)
+<p align="middle">
+  <img src="pics/bridge_terrain.jpg" width="49%" />
+  <img src="pics/bridge_osm_terrain.jpg" width="49%" />
+</p>
 
 During the import, the height of tracks/streets is simply determined by the terrain height at the location of nodes (but only there!).
 Bridge nodes are linearly interpolated between the endpoints, so they are not on the ground.
@@ -266,14 +270,14 @@ Thus, it is reasonable to try to keep the number of edges minimal.
 As curves in OSM are modeled by [many small segments](/python/README.md#curves), this creates a lot more edges than actually needed in TPF2, especially for sharp street curves.
 Apparently, this also tends to produce exponentially many connection links.
 
-![](/doc/pics/nodes_links.jpg)
+<p align="middle"><img src="pics/nodes_links.jpg" width="80%" /></p>
 
 It should therefore be advantegous to replace all of these tiny edges with few curved edges.
 Actually, this node/lane restructuring is done automatically by the game each time you interfere with existing streets.
 We can therefore make use of this behavior by adding a street to a path with many nodes to trigger the node/edge simplification.
 To ease this process, use [Self-deleting Track/Street](https://www.transportfever.net/filebase/entry/7376-self-deleting-track-street/) so you don't have to delete the street manually.
 
-![](/doc/pics/nodes_reduction.gif)
+<p align="middle"><img src="pics/nodes_reduction.gif" width="80%" /></p>
 
 Dead ends are sometimes modeled in detail with many nodes in OSM.
 In TPF2, this should be simplified or replaced with dedicated [streets for dead ends](https://steamcommunity.com/sharedfiles/filedetails/?id=2557053030).
@@ -296,7 +300,7 @@ As tram tracks are represented individually and not on streets in OSM, this can 
 You might need to bulldoze large streets, when the street lanes are modeled individually as oneway, and replace with one big street.
 Tram tracks in the middle can be achieved with [eis_os street package](https://www.transportfever.net/filebase/entry/6263-eis-os-strassenpaket-strassen-mit-rasengleis-mitteltram/).
 
-![](/doc/pics/tramlane.jpg)
+<p align="middle"><img src="pics/tramlane.jpg" width="90%" /></p>
 
 ## Motorways
 Motorways with structurally separated lanes are represented as two one-way lanes in OSM.
