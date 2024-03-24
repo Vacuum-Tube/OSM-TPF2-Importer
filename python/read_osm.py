@@ -48,6 +48,8 @@ def read_bounds(filename):  # read bounds info from osm/xml file
 
 def read(filename, bounds=None):
     print(f"Read osm data from '{filename}' ...")
+    bounds = read_bounds(filename)
+    print("Bounds of osm file:", bounds)
     assert filename.endswith(".osm") or filename.endswith(".pbf"), "File type needs to be .osm or .pbf"
     nodes = {}
     ways = {}
@@ -56,6 +58,8 @@ def read(filename, bounds=None):
         if isinstance(entity, Node):
             # if bounds is None or isinbounds(bounds, entity.lat, entity.lon):  # not working, leads to missing node reference in ways + relations
             nodes[entity.id] = entity
+            if not isinbounds(bounds, entity.lat, entity.lon):
+                entity.tags["outofbounds"] = True
         elif isinstance(entity, Way):
             ways[entity.id] = entity
         elif isinstance(entity, Relation):

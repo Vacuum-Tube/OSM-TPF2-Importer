@@ -50,6 +50,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         pos = list(transf(node.lat, node.lon))
         data["nodes"][id] = {
             "pos": pos,
+            "outofbounds": tags.get("outofbounds"),
             # "railway": tags.get("railway"),
             "switch": trueornil(tags.get("railway") == "switch"),
             # https://wiki.openstreetmap.org/wiki/Tag:railway%3Dsignal#How_Signal_Tagging_works_by_principle
@@ -213,6 +214,11 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                     "bridge": False if tags.get("bridge") == "no" else tags.get("bridge"),
                     "tunnel": False if tags.get("tunnel") == "no" else tags.get("tunnel"),
                 }
+
+            if data["nodes"][wnodes[0]]["outofbounds"]:
+                data["nodes"][wnodes[0]]["endpoint"] = True
+            if data["nodes"][wnodes[-1]]["outofbounds"]:
+                data["nodes"][wnodes[-1]]["endpoint"] = True
 
         if tags.get("landuse") == "forest" or tags.get("natural") == "wood":
             if wnodes[0] != wnodes[-1]:
