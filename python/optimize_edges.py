@@ -1,4 +1,6 @@
 import math
+import sys
+from math import pi
 import networkx as nx
 import numpy as np
 
@@ -27,17 +29,21 @@ def optimize(data):
         "bridge": paths_bridges,
     }
 
-    # 3. Avoid very short tracks (can lead to zig-zag) and merge them
+    # 3. Remove Nodes to improve curve geometry and reduce number of segments
     print("=" * 16 + " Remove Nodes with high curvature " + "=" * 16)
-    remove_short_nodes(paths_track, g, gt, gs, data["nodes"], data["edges"], 200)
-    remove_short_nodes(paths_street, g, gt, gs, data["nodes"], data["edges"], 80)
+    remove_nodes_curvature(paths_track, g, gt, gs, data["nodes"], data["edges"], 200, maxangle=30)
+    remove_nodes_curvature(paths_street, g, gt, gs, data["nodes"], data["edges"], 80, maxangle=30)
+    print("=" * 16 + " Remove unnecessary short Edges " + "=" * 16)
+    remove_short_unnecessary_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 100, maxangle=35)
+    remove_short_unnecessary_edges(paths_street, g, gt, gs, data["nodes"], data["edges"], 70, maxangle=30)
     print("=" * 16 + " Remove short Edges " + "=" * 16)
-    remove_short_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 15)
+    remove_short_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 10)
+    remove_short_edges(paths_street, g, gt, gs, data["nodes"], data["edges"], 1.5)
 
     # 4. Calculate tangents for curved edge paths
     print("=" * 16 + " Calculate Tangents " + "=" * 16)
-    add_curve_tangents(paths_track, g, method="natural", warnangle=15)
-    add_curve_tangents(paths_street, g, method="natural")
+    add_curve_tangents(paths_track, g, method="natural", maxangle=45, warnangle=30)
+    add_curve_tangents(paths_street, g, method="natural", maxangle=30, warnangle=90)
     add_path_info_to_nodes(paths_track, data["nodes"], "track")
     add_path_info_to_nodes(paths_street, data["nodes"], "street")
 
@@ -58,7 +64,7 @@ def split_long_edges(nodes, edges, max_edge_length, etype=None):
         p1 = Vec2(nodes[n1]["pos"])
         length = (p1 - p0).length()
         if length > max_edge_length:
-            print(f"Split Edge({n0},{n1}) is long ({length:.3f})")
+            print(f"Split Edge({n0},{n1}) is long ({length:.4g})")
             remove_edges.append(eid)
             num_seg = math.ceil(length / max_edge_length)
             lastnode = n0
@@ -107,7 +113,7 @@ def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
                 succ = True
             else:
                 succ = False
-            print(f"Remove Edge({path[idx]},{path[idx + 1]}) is short ({lens[idx]:.3f})")
+            print(f"Remove Edge({path[idx]},{path[idx + 1]}) is short ({lens[idx]:.4g})")
             # {'after' if succ else 'before'} {idx}")
             if succ:  # replace with successor
                 node_rem = path[idx + 1]
@@ -121,46 +127,104 @@ def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
                 remove_node(g, nodes, edges, path, node_rem, node_keep, node_correct)
             else:
                 skip_edges.add((path[idx], path[idx + 1]))
-                print("Cannot remove", node_rem)
+                # print("Cannot remove", node_rem)
 
 
-def remove_short_nodes(paths, g, gt, gs, nodes, edges, max_edge_length):
+def remove_nodes_curvature(paths, g, gt, gs, nodes, edges, max_edge_length, maxangle=30):
     for path in paths:
         skip_nodes = set(path[i] for i in range(1, len(path) - 1)
                          if not is_node_removable(g, gt, gs, path[i], path[i - 1], path[i + 1]))
-        while len(path) > 2:
+        maxk = 1
+        while len(path) > 2 and maxk > 0:
             c = get_spline(g, path)
-            ks = [[i, c.get_maxk_at_node(i)] for i in range(1, len(path) - 1) if path[i] not in skip_nodes]
+            x, y = c.x, c.y
+            ks = [[i, c.maxk_at_node(i)] for i in range(1, len(path) - 1) if path[i] not in skip_nodes]
             if len(ks) == 0:
                 break
             while True:
                 kidx = max(range(len(ks)), key=lambda j: ks[j][1])  # get node with largest curvature
                 (idx, maxk) = ks[kidx]
-                if maxk == 0:
+                if maxk <= 0:
                     break
                 node, node_pre, node_suc = path[idx], path[idx - 1], path[idx + 1]
                 edge = g.edges[node_pre, node]["data"]
                 minradius = expected_minradius(edge)
-                if nodes[node].get("added_long"):  # nodes added by split edges are expected to create straights
-                    minradius *= 2
+                # if nodes[node].get("added_long"):  # nodes added by split edges are expected to create straights
+                #     minradius=max(minradius * 2,100)
                 if maxk > 1 / minradius:
-                    assert is_node_removable(g, gt, gs, node, node_pre, node_suc)
-                    trackorstreet = edge['track'] or edge['street']
-                    print(f"Remove Node({node}) CURVE "
-                          f"{edge['track'] and 'track(' + edge['track']['type'] or 'street(' + edge['street']['type']},"
-                          f"{trackorstreet['speed'] or ''}) too narrow Rmin={1 / maxk:.3f}")
-                    l01 = (g.nodes[node_pre]["pos"] - g.nodes[node]["pos"]).length()
-                    l12 = (g.nodes[node]["pos"] - g.nodes[node_suc]["pos"]).length()
-                    if l01 + l12 > max_edge_length:
-                        print(f"Cant remove, Edge would be too long {l01 + l12:.3f}")
-                        skip_nodes.add(node)
-                        ks[kidx][1] = 0
+                    t01 = y[idx] - y[idx - 1]
+                    t12 = y[idx + 1] - y[idx]
+                    l01 = t01.length()
+                    l12 = t12.length()
+                    if Vec2.angle(t01, t12) > maxangle / 180 * pi:
+                        pass  # print(f"Dont remove, Angle too high {Vec2.angle(t01, t12)*180/pi:.3f}")
+                    elif l01 + l12 > max_edge_length:
+                        print(f"Dont remove {node} with Rmin={1 / maxk:.4g}, Edge would be too long {l01 + l12:.3g}")
                     else:
-                        remove_node(g, nodes, edges, path, node, node_pre, node_suc)
+                        print(f"Remove Node({node}) CURVE "
+                              f"{edge['track'] and 'track(' + edge['track']['type'] or 'street(' + edge['street']['type']},"
+                              f"{(edge['track'] or edge['street'])['speed'] or ''}) too narrow Rmin={1 / maxk:.4g}")
+                        # use data from longer edge
+                        node_data, node_other = (node_pre, node_suc) if l01 > l12 else (node_suc, node_pre)
+                        remove_node(g, nodes, edges, path, node, node_other, node_data)
                         break
-                else:
-                    ks[kidx][1] = 0  # ignore for the rest of this loop
-                    skip_nodes.add(node)
+                ks[kidx][1] = -1  # ignore for the rest of this loop
+                skip_nodes.add(node)
+
+
+def remove_short_unnecessary_edges(paths, g, gt, gs, nodes, edges, max_edge_length, maxangle):
+    for path in paths:
+        skip_nodes = set(path[i] for i in range(1, len(path) - 1)
+                         if not is_node_removable(g, gt, gs, path[i], path[i - 1], path[i + 1]))
+        segdelnodes = [[] for _ in range(len(path) - 1)]  # for the dist condition, use to find segement to test
+        while len(path) > 2:
+            c = get_spline(g, path)
+            x, y = c.x, c.y
+            # cerr = c.error_spline()
+            # maxerr = [[i, cerr.maxerr_at_node(i)] for i in range(1, len(path) - 1) if path[i] not in skip_nodes]
+            # print(maxerr)
+            trynodes = [i for i in range(1, len(path) - 1) if path[i] not in skip_nodes]
+            if len(trynodes) == 0:
+                break
+            for idx in trynodes:
+                node = path[idx]
+                t01 = y[idx] - y[idx - 1]
+                t12 = y[idx + 1] - y[idx]
+                l01 = t01.length()
+                l12 = t12.length()
+                assert l01 > 0
+                assert l12 > 0
+                if l01 + l12 < max_edge_length \
+                        and c.viabs[idx] > 0 \
+                        and Vec2.angle(c.vi[idx], t01) < maxangle / 180 * pi \
+                        and Vec2.angle(c.vi[idx], t12) < maxangle / 180 * pi \
+                        and Vec2.angle(t01, t12) < maxangle / 180 * pi:
+                    # spline curve without this node
+                    cwo = get_spline(g, [n for i, n in enumerate(path) if i != idx])
+                    dist = cwo.dist_to_point(y[idx], idx - 1, idx)  # distance to the removed node
+                    # check distance of already removed nodes
+                    distothers = max((cwo.dist_to_point(Vec2(nodes[n]["pos"]), i if i < idx else i - 1, i + 1 if
+                    i < idx else i) for i, seg in enumerate(segdelnodes) for n in seg), default=-1)
+                    if idx == 1 and Vec2.angle(cwo.vi[0], t01) > 10 / 180 * pi:  # try preserve orig start direction
+                        pass
+                    elif idx == len(path) - 2 and Vec2.angle(cwo.vi[-1], t12) > 10 / 180 * pi:
+                        pass
+                    elif 1 < idx < len(path) - 2 and (Vec2.angle(cwo.y[idx - 1] - cwo.y[idx - 2],
+                                                                 cwo.y[idx] - cwo.y[idx - 1]) > maxangle / 180 * pi
+                                                      or Vec2.angle(cwo.y[idx + 1] - cwo.y[idx],
+                                                                    cwo.y[idx] - cwo.y[idx - 1]) > maxangle / 180 * pi):
+                        pass
+                    elif dist < 1.8 and distothers < 2.2:
+                        print(f"Remove Node({node}) errdist={dist:.3g} distoth={distothers:.3g} "
+                              f"new edge len {l01 + l12:.4g}= {l01:.4g} + {l12:.4g}")
+                        node_data, node_other = (path[idx - 1], path[idx + 1]) if l01 > l12 else (
+                            path[idx + 1], path[idx - 1])
+                        remove_node(g, nodes, edges, path, node, node_other, node_data)
+                        segdelnodes[idx - 1].append(node)
+                        segdelnodes[idx - 1].extend(segdelnodes[idx])
+                        segdelnodes.pop(idx)
+                        break
+                skip_nodes.add(node)
 
 
 def expected_minradius(edge):
@@ -169,17 +233,16 @@ def expected_minradius(edge):
         if edge["track"]["type"] == "rail":
             r = 100
             if edge["track"]["speed"]:
-                r = expected_radius_speed(edge["track"]["speed"] / 3.6) * 1.4  # tolerance
+                r = expected_radius_speed(edge["track"]["speed"] / 3.6) / 1.1  # tolerance
         elif edge["track"]["type"] in {"light_rail", "subway"}:
             r = 50
-        elif edge["track"]["type"] in {"tram", "narrow_gauge", "disused", "miniature"}:
+        elif edge["track"]["type"] in {"tram", "narrow_gauge", "disused"}:
             r = 10
     if edge["street"]:
         if edge["street"]["type"] in {"motorway", "trunk"}:
-            r = 50
-        elif edge["street"]["type"] in {"motorway_link", "trunk_link", "primary", "primary_link", "secondary",
-                                        "secondary_link", "tertiary", "tertiary_link"}:
-            r = 25
+            r = 40
+        elif edge["street"]["type"] in {"motorway_link", "trunk_link", "primary", "secondary", "tertiary", }:
+            r = 5
     return r
 
 
@@ -203,7 +266,11 @@ def remove_node(g, nodes, edges, path, node_rem, node_keep, node_correct):
         assert edge["node0"] == node_correct
         assert edge["node1"] == node_rem
         edge["node1"] = node_keep
-    g.add_edge(node_correct, node_keep, **g.edges[node_rem, node_correct])
+    if not g.has_edge(node_correct, node_keep):
+        g.add_edge(node_correct, node_keep, **g.edges[node_rem, node_correct])
+    else:
+        print(f"WARNING: Edge({node_correct},{node_keep}) already exist while removing {node_rem}", file=sys.stderr)
+        # dont add, lets hope nothing bad happens
     g.remove_edge(node_rem, node_correct)
     g.remove_node(node_rem)
     path.remove(node_rem)
@@ -240,8 +307,8 @@ def add_curve_tangents(paths, g, method="finite_difference", maxangle=30, warnan
             for angle in [
                 Vec2.angle(c.vi[0], y[1] - y[0]),
                 Vec2.angle(c.vi[-1], y[-1] - y[-2])]:
-                if angle > warnangle / 180 * math.pi:
-                    print(f"WARNING start/end node {path[0]} Diff tang angle: {angle * 180 / math.pi:.3f}")
+                if angle > warnangle / 180 * pi:
+                    print(f"WARNING start/end node {path[0]} Diff tang angle: {angle * 180 / pi:.3f}")
         for n0, n1, n2 in zip(path[:-2], path[1:-1], path[2:]):
             p0 = g.nodes[n0]["pos"]
             p1 = g.nodes[n1]["pos"]
@@ -250,7 +317,7 @@ def add_curve_tangents(paths, g, method="finite_difference", maxangle=30, warnan
             t12 = p2 - p1
             e01 = g.edges[n0, n1]["data"]
             e12 = g.edges[n1, n2]["data"]
-            if Vec2.angle(t01, t12) < maxangle / 180 * math.pi:
+            if Vec2.angle(t01, t12) < maxangle / 180 * pi:
                 if method == "finite_difference":  # https://en.wikipedia.org/wiki/Cubic_Hermite_spline
                     tang = (t01.normalize() + t12.normalize()) / 2
                 elif method == "Catmull–Rom":
@@ -264,10 +331,10 @@ def add_curve_tangents(paths, g, method="finite_difference", maxangle=30, warnan
                 else:
                     raise Exception("Unknown tangent method: " + method)
                 for angle in [Vec2.angle(tang, t01), Vec2.angle(tang, t12)]:
-                    if angle > warnangle / 180 * math.pi:
+                    if angle > warnangle / 180 * pi:
                         print(f"WARNING: node {n1} "
                               f"{e01['street'] and 'street(' + e01['street']['type'] or 'track(' + e01['track']['type']}) "
-                              f"Diff tang angle: {angle * 180 / math.pi:.3f}")
+                              f"Diff tang angle: {angle * 180 / pi:.3f}")
                 if method in {"finite_difference", "Catmull–Rom"}:
                     l01 = approx_length_arc(t01.length(), Vec2.angle(t01, tang))
                     l12 = approx_length_arc(t12.length(), Vec2.angle(t12, tang))
@@ -310,6 +377,7 @@ def create_graphs(nodes, edges):
         for gi in [g, gd]:
             gi.add_node(id, data=node, pos=Vec2(node["pos"]), endpoint=node.get("endpoint"))
     for id, edge in edges.items():
+        assert bool(edge["track"]) ^ bool(edge["street"]), f"Edge has to be track OR street {id}"
         if g.has_edge(edge["node0"], edge["node1"]):  # duplicate edges can exist because of mapping errors or...
             print(f'Edge({edge["node0"]},{edge["node1"]}) {id} already exist! '
                   f'(type: {g.edges[edge["node0"], edge["node1"]]["type"]})')
@@ -344,6 +412,10 @@ def is_node_removable(g, gt, gs, node, n_pre, n_suc, exclude_bridges=False, prin
         if printt:
             print(node, "is railway crossing")
         return False
+    if gt.has_node(node) and gs.has_node(node):
+        if printt:
+            print(node, "is street and track node")
+        return False
     if g.nodes[node]["data"].get("signal"):
         if printt:
             print(node, "is signal")
@@ -363,10 +435,6 @@ def is_node_removable(g, gt, gs, node, n_pre, n_suc, exclude_bridges=False, prin
     if edge_pre["street"] and edge_pre["street"]["type"] != edge_suc["street"]["type"]:
         if printt:
             print(node, "between different highway types")
-        return False
-    if gs.has_node(node):
-        if printt:
-            print(node, "is also a street node")
         return False
     return True
 

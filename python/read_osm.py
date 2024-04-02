@@ -42,7 +42,7 @@ def read_bounds(filename):  # read bounds info from osm/xml file
         assert root[0].tag == "note"
         assert root[2].tag == "bounds"
         boundstag = root[2]
-    bounds = dict((k, float(v)) for k, v in boundstag.attrib.items())
+    bounds = dict((k, float(v)) for k, v in boundstag.attrib.items() if k != "origin")  # osmosis
     return bounds
 
 

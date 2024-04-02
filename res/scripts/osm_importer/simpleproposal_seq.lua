@@ -64,10 +64,11 @@ end
 
 function s.SimpleProposalSeqE()
 	if #s.seqlist>0 and not s.stop then
-		s.count = s.count +1
-		s.SimpleProposalSeqEdgeCmd(table.remove(s.seqlist,1), s.cbLevel, true)
+		local edge = table.remove(s.seqlist, 1)
+		s.count = s.count + 1
 		s.pb:setProgress(s.count/s.nseq)
-		s.pb:setTask(s.edge.track and "Track: "..s.edge.track.type or s.edge.street and "Street: "..s.edge.street.type)
+		s.pb:setTask(edge.track and "Track: "..edge.track.type or edge.street and "Street: "..edge.street.type)
+		s.SimpleProposalSeqEdgeCmd(edge, s.cbLevel, true)
 	else
 		print("-------------------------------------------------------------")
 		if #s.seqlist~=0 then

@@ -277,6 +277,9 @@ Actually, this node/lane restructuring is done automatically by the game each ti
 We can therefore make use of this behavior by adding a street to a path with many nodes to trigger the node/edge simplification.
 To ease this process, use [Self-deleting Track/Street](https://www.transportfever.net/filebase/entry/7376-self-deleting-track-street/) so you don't have to delete the street manually.
 
+__With version 1.2, a node reduction algorithm was added.__
+This saves most of the manual efforts!
+
 <p align="middle"><img src="pics/nodes_reduction.gif" width="80%" /></p>
 
 Dead ends are sometimes modeled in detail with many nodes in OSM.

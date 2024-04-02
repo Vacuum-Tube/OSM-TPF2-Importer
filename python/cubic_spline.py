@@ -42,11 +42,16 @@ class MyCubicSpline(CubicSpline):
     def k(self, t):
         return abs(self.d1(t)[0] * self.d2(t)[1] - self.d1(t)[1] * self.d2(t)[0]) / sum(self.d1(t) ** 2) ** 1.5
 
-    def get_maxk_at_node(self, i, samples=10):
+    def maxk_at_node(self, i, samples=10):
         x = self.x
         return max(self.k(t) for t in (
             *np.linspace(x[i] - 0.49 * (x[i] - x[i - 1]), x[i], samples),
             *np.linspace(x[i], x[i] + 0.49 * (x[i + 1] - x[i]), samples)))
+
+    def dist_to_point(self, p, i_start, i_end, samples=30):
+        # assert (self.y[i_start] - p).length() < (self.y[i_start] - self.y[i_end]).length()
+        # assert (self.y[i_end] - p).length() < (self.y[i_start] - self.y[i_end]).length()
+        return min((Vec2(self(t)) - p).length() for t in np.linspace(self.x[i_start], self.x[i_end], samples))
 
     # calc error spline / deviation from linear spline: y[i]+(x-x[i])/(x[i+1]-x[i])*(y[i+1]-y[i])
     # simple approximation of (geometric) spline error
@@ -58,7 +63,7 @@ class MyCubicSpline(CubicSpline):
             cerr.c[3, m, :] -= self.y[m].toArray()  # constant term
         return cerr
 
-    def get_maxerr_at_node(self, i, samples=10):
+    def maxerr_at_node(self, i, samples=10):
         assert self.iserrorspline
         x = self.x
         return max(Vec2(self(t)).length() for t in (

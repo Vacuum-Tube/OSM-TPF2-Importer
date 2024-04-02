@@ -169,6 +169,11 @@ Obviously, OSM data is not so smooth as it looks at first.
   <img src="../doc/pics/curve_axy.png" width="49%" /> 
 </p>
 
+Additionally, there is a function to remove nodes where the curvature is too high.
+This improves the smoothness of the curves.
+Moreover, there is a function to remove nodes of short segments in general if the resulting curve makes them unnecessary.
+This can save a lot of nodes/edges in the game.
+
 With the z value, the tangent calculation is done a bit differently because the above method can lead to overshooting,
 i.e. more curvature than wanted. Here, the z-tangent at node $n_1$ is chosen as the minimum of the adjacent tangents $t_
 {01,z}$ and $t_{12,z}$ (and 0 if they have different sign) to keep slopes low at the nodes. This will lead to better
