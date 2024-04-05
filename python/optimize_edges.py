@@ -124,7 +124,8 @@ def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
                 node_keep = path[idx + 1]
                 node_correct = path[idx - 1]
             if is_node_removable(g, gt, gs, node_rem, node_correct, node_keep, exclude_bridges=True, printt=True):
-                remove_node(g, nodes, edges, path, node_rem, node_keep, node_correct)
+                if not remove_node(g, nodes, edges, path, node_rem, node_keep, node_correct):
+                    break
             else:
                 skip_edges.add((path[idx], path[idx + 1]))
                 # print("Cannot remove", node_rem)
@@ -163,10 +164,11 @@ def remove_nodes_curvature(paths, g, gt, gs, nodes, edges, max_edge_length, maxa
                     else:
                         print(f"Remove Node({node}) CURVE "
                               f"{edge['track'] and 'track(' + edge['track']['type'] or 'street(' + edge['street']['type']},"
-                              f"{(edge['track'] or edge['street'])['speed'] or ''}) too narrow Rmin={1 / maxk:.4g}")
+                              f"{(edge['track'] or edge['street']).get('speed') or ''}) too narrow Rmin={1 / maxk:.4g}")
                         # use data from longer edge
                         node_data, node_other = (node_pre, node_suc) if l01 > l12 else (node_suc, node_pre)
-                        remove_node(g, nodes, edges, path, node, node_other, node_data)
+                        if not remove_node(g, nodes, edges, path, node, node_other, node_data):
+                            skip_nodes.add(node)
                         break
                 ks[kidx][1] = -1  # ignore for the rest of this loop
                 skip_nodes.add(node)
@@ -219,10 +221,12 @@ def remove_short_unnecessary_edges(paths, g, gt, gs, nodes, edges, max_edge_leng
                               f"new edge len {l01 + l12:.4g}= {l01:.4g} + {l12:.4g}")
                         node_data, node_other = (path[idx - 1], path[idx + 1]) if l01 > l12 else (
                             path[idx + 1], path[idx - 1])
-                        remove_node(g, nodes, edges, path, node, node_other, node_data)
-                        segdelnodes[idx - 1].append(node)
-                        segdelnodes[idx - 1].extend(segdelnodes[idx])
-                        segdelnodes.pop(idx)
+                        if remove_node(g, nodes, edges, path, node, node_other, node_data):
+                            segdelnodes[idx - 1].append(node)
+                            segdelnodes[idx - 1].extend(segdelnodes[idx])
+                            segdelnodes.pop(idx)
+                        else:
+                            skip_nodes.add(node)
                         break
                 skip_nodes.add(node)
 
@@ -255,6 +259,10 @@ def expected_radius_speed(speed):
 
 def remove_node(g, nodes, edges, path, node_rem, node_keep, node_correct):
     assert not nodes[node_rem].get("removed")
+    assert node_correct != node_keep, f"error while remove {node_rem}"
+    if g.has_edge(node_correct, node_keep):
+        print(f"WARNING: Edge({node_correct},{node_keep}) already exist while removing {node_rem}", file=sys.stderr)
+        return False
     # remove edge and correct connected edge with other node
     edges.pop(g.edges[node_rem, node_keep]["name"])  # remove edge from orig data
     g.remove_edge(node_rem, node_keep)
@@ -266,15 +274,12 @@ def remove_node(g, nodes, edges, path, node_rem, node_keep, node_correct):
         assert edge["node0"] == node_correct
         assert edge["node1"] == node_rem
         edge["node1"] = node_keep
-    if not g.has_edge(node_correct, node_keep):
-        g.add_edge(node_correct, node_keep, **g.edges[node_rem, node_correct])
-    else:
-        print(f"WARNING: Edge({node_correct},{node_keep}) already exist while removing {node_rem}", file=sys.stderr)
-        # dont add, lets hope nothing bad happens
+    g.add_edge(node_correct, node_keep, **g.edges[node_rem, node_correct])
     g.remove_edge(node_rem, node_correct)
     g.remove_node(node_rem)
     path.remove(node_rem)
     nodes[node_rem]["removed"] = True
+    return True
 
 
 def get_spline(g, path, method="natural"):

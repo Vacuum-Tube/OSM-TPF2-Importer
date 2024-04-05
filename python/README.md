@@ -1,12 +1,11 @@
 # OSM-TPF Converter (Python)
 
-The Converter is an intermediate step between the OSM data and [OSM Builder](/res/scripts/osm_importer/) (the Lua part)
-to facilitate the data processing and prepare it for TPF2. This tool is a Python script and converts the OSM data to a
-convenient Lua file. You need to adjust some information in the main.py file and then execute it.
+The Converter is an intermediate step between the OSM data and [OSM Builder](/res/scripts/osm_importer/) (the Lua part) to facilitate the data processing and prepare it for TPF2. 
+This tool is a Python script that converts the OSM data to a convenient Lua file.
 
 # Installation
 
- ## Use Python with virtual environment
+## Method 1: Use Python with virtual environment
 Install [Python](https://www.python.org/downloads/) (3.9).
 Windows users can download Python from the [Microsoft Store](https://apps.microsoft.com/detail/9p7qfqmjrfp7).
 
@@ -30,32 +29,39 @@ or [run_venv.bat](run_venv.bat) if you are on Windows.
 
 
 ## Method 2: Use Exe (Windows)
----- coming soon ----
+If you don't want to install Python and are on Windows, you can simply use the exe application (find in [Releases](https://github.com/Vacuum-Tube/OSM-TPF2-Importer/releases)).
 
-If you don't want to install Python and are on Windows, you can simply use the exe application.
-Find in [Releases](https://github.com/Vacuum-Tube/OSM-TPF2-Importer/releases).
+Run it in the command line with a command like follows
+```
+main.exe map.osm osmdata.lua 16384,16384 47.6833,8.5969,47.7103,8.6698
+```
+or use the run.bat file.
+The input arguments are:
 
-
+- Arg1: Input file
+- Arg2: Output file
+- Arg3: Size of TPF2 map (comma-separated x and y length)
+- Arg4: Coordinates (comma-separated minlat, minlon, maxlat, maxlon)
 
 
 # Usage
+Before running the converter, you need to adjust some information for your case.
+Depending on which method used for installation, either edit [main.py](main.py) or use arguments (which override the defaults in the file).
 
-In [main.py](main.py), specify `INFILE` with your exported OSM file. In case you use a predefined OSM file (e.g.
-Geofabrik) with an area larger than your TPF2 map, you need to crop it to your map bounds before by
-using [crop_osm.py](crop_osm.py) and Osmosis (more info [here](osmosis/README.md)).
+In [main.py](main.py), specify `INFILE` using your exported OSM file.
 
-Specify the size of your TPF2 map by adjusting this line
+In case you use a predefined OSM file (e.g. Geofabrik) with an area larger than your TPF2 map, you need to crop it to your map bounds before by using [crop_osm.py](crop_osm.py) and Osmosis (more info [here](osmosis/README.md)).
+
+Next, specify the size of your TPF2 map by adjusting this line
 
 ```python
 bounds_length = (16384, 16384)  # for size "Very Large" 1:1
 ```
 
-with your horizontal map lengths in meters. Find the **exact**
-values [here](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/) (unfortunately the sizes in the [wiki](https://www.transportfever2.com/wiki/doku.php?id=gamemanual:mapsizes) are approximated) or with [Advanced Statistics](https://steamcommunity.com/sharedfiles/filedetails/?id=2454731512).
+with your horizontal map lengths in meters. Find the **exact** values [here](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/) (unfortunately the sizes in the [wiki](https://www.transportfever2.com/wiki/doku.php?id=gamemanual:mapsizes) are approximated) or with [Advanced Statistics](https://steamcommunity.com/sharedfiles/filedetails/?id=2454731512).
 
-Next, define the coordinates of your map excerpt. 
-All node coordinates are transformed such that the bounds coordinates
-are scaled to `bounds_length` so that they are mapped exactly to the border of the TPF map. 
+Finally, you need to define the coordinates of your map excerpt. 
+All node coordinates will be transformed such that the bounds coordinates are scaled to `bounds_length` so that they are mapped exactly to the border of the TPF map. 
 Therefore, it is your responsibility to check the sizes (and ratio if your map is not square).
 
 The real distance of the bound coordinates in meters is printed in the log. 
@@ -66,19 +72,19 @@ This is the moment, when you realize *that the earth is not flat...* and start t
 Distance of bounds: lon=24747-24634m , lat=24560m 
 ```
 
-Compare this to your actual map length. They don't have to match exactly (which is not possible anyway), but should be
-about correct. If you don't plan a 1:1 reconstruction but a scaled one, you need to account for the respective factor.
+Compare this to your actual map length. 
+They don't have to match exactly (which is not possible anyway), but should be about correct. 
+If you don't plan a 1:1 reconstruction but a scaled one, you need to account for the respective factor here.
 
-You can simply use the bounds of the OSM file via
-
+You could just use the bounds of the OSM file, 
+then your OSM file is scaled to the whole map:
 ```python
 bounds = read_osm.read_bounds(INFILE)
 ```
 
-Then your OSM file is scaled to the whole map.
-
-However, it may be useful to test the import for multiple smaller areas before doing it for the whole map. Specify the
-coordinates of your map:
+However, it may be useful to test the import for multiple (smaller) areas before doing it for the whole map. 
+Therefore, specify the coordinates of your map bound.
+After that, you can test any subarea inside your map bounds, and the subarea is built at the right location on the map.
 
 ```python
 bounds = {
@@ -87,17 +93,16 @@ bounds = {
 }
 ```
 
-After that, you can test any subarea inside your map bounds.
-
-Now execute main.py. 
+Now execute main.py or main.exe. 
 If it runs successfully, the output file `osmdata.lua` is created. 
 This file is needed for the next step.
 
 If the file is not created because of an error, send me the log file and your osm file.
 
 The log is saved to the file `log.txt`. 
-It contains information about the OSM data, locations, and the number of resulting single street and track edges for TPF2, broken down by types. 
-This will be useful later to estimate executions time of the constructing process and whether to include all street/path types or not due to performance reasons.
+It contains information about the OSM data, locations, and the number of resulting single street and track edges for TPF2, broken down by types (at the end). 
+This will be useful later to estimate execution time of the constructing process and whether to include all street/path types or not due to performance reasons.
+
 
 # Details
 
@@ -169,11 +174,6 @@ Obviously, OSM data is not so smooth as it looks at first.
   <img src="../doc/pics/curve_axy.png" width="49%" /> 
 </p>
 
-Additionally, there is a function to remove nodes where the curvature is too high.
-This improves the smoothness of the curves.
-Moreover, there is a function to remove nodes of short segments in general if the resulting curve makes them unnecessary.
-This can save a lot of nodes/edges in the game.
-
 With the z value, the tangent calculation is done a bit differently because the above method can lead to overshooting,
 i.e. more curvature than wanted. Here, the z-tangent at node $n_1$ is chosen as the minimum of the adjacent tangents $t_
 {01,z}$ and $t_{12,z}$ (and 0 if they have different sign) to keep slopes low at the nodes. This will lead to better
@@ -186,9 +186,12 @@ Additionally, we want to avoid very long edges, as they can cut through terrain,
 nodes. The code is splitting edges that are longer than a maximum value (actually the game does the same when you lay
 streets or tracks).
 
-Very short pieces of track can also be annoying and create too much curvature, when the node mapping was done
-unprecisely. The code merges short track edges and deletes nodes if possible.
-(However, node reduction for streets needs to be done manually during the preprocessing.)
+Very short pieces of track can also be annoying and create too much curvature, when the node mapping was done unprecisely. 
+There is a function to calculate the curvature along the curve.
+If the curvature is too high, the code deletes nodes if possible and merges the remaining edges.
+This improves the smoothness of the curves significantly.
+Moreover, there is a function to remove nodes of short segments in general if the resulting curve makes them unnecessary.
+This can save a lot of nodes/edges in the game.
 
 Railway signals are another example of differing data representations. In TPF2 they are connected to an edge, while in
 OSM signals are nodes. The transformation is done accordingly, such that signals are placed right in front of catenary

@@ -4,7 +4,7 @@ import read_osm
 # you need to place osmosis in this folder and install java (and for unix adjust path separator in read_osm.py)
 # more info in osmosis/README
 
-# due to an issue with osmread package, you may need to comment out the line with _changeset in osmread/parser/xml.py (if you don't use my environment)
+# For Geofabrik files: due to an issue with osmread package, you may need to comment out the line with _changeset in osmread/parser/xml.py 
 
 bounds = {
     "minlat": 49.9829, "minlon": 8.48095,
