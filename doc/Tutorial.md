@@ -199,6 +199,8 @@ This step refers to the [OSM Builder (Lua Mod)](/res/scripts/osm_importer).
 The tool is used as a mod to complete the import in the game.
 How to use it is described in this [README](/res/scripts/osm_importer/README.md).
 
+Don't forget to activate the [required mods](/doc/Mods.md) to your savegame.
+
 Building tracks and streets can take a while. 
 Before doing it for the whole map, you should test the import of Steps 3, 5, 6 with multiple small excerpts.
 Inspect the results to find any issues that need to be resolved before the final import.
