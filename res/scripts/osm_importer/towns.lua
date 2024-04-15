@@ -1,3 +1,5 @@
+local tools = require"osm_importer.tools"
+
 local t = {}
 
 function t.createTown(caps,pos,name,devactive)
@@ -22,7 +24,15 @@ function t.createTown(caps,pos,name,devactive)
 end
 
 function t.createTownLabel(pos,name)
-	t.createTown({0,0,0},pos,name,false)
+	if tools.isValidCoordinate(pos[1], pos[2]) then
+		if tools.isOverWater(pos[1], pos[2]) then
+			t.createTown({0,0,0},pos,name,false)
+		else
+			print("Town "..name, "under water!")
+		end
+	else
+		print("Town "..name, "pos out of map: "..toString(pos))
+	end
 end
 
 function t.createTownLabels(towns)

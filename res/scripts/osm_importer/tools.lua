@@ -63,6 +63,11 @@ function t.isValidCoordinate(x,y)
 	return api.engine.terrain.isValidCoordinate(api.type.Vec2f.new(x, y))
 end
 
+function t.isOverWater(x,y)
+	local terrain = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.TERRAIN)
+	return game.interface.getHeight({x, y}) > terrain.waterLevel
+end
+
 function t.getNearestNode(pos,bnodelist,maxdist)
 	local c = t.Vec2f(pos)
 	local min = (maxdist or math.huge)^2
