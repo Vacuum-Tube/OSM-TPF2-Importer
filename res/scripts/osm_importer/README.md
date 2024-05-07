@@ -45,6 +45,10 @@ m.towns.setAllTownsDevActive(false)
 bulldoze.delEdges()  -- this removes all edges!
 ```
 
+It can happen that the game crashes with `Assertion 'it != m_compType2index.end()' failed.`
+In this case, first create a town anywhere and delete it.
+
+
 ## __2. Forests__
 Now we built forests and bush areas from the OSM data.
 To distribute various tree models in polygon areas, the [Forester Mod](https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/) is accessed (***make sure to use my Interface version 1.4***).

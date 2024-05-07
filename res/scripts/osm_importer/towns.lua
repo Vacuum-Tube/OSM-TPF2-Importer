@@ -26,7 +26,7 @@ end
 function t.createTownLabel(pos,name)
 	if tools.isValidCoordinate(pos[1], pos[2]) then
 		if tools.isOverWater(pos[1], pos[2]) then
-			t.createTown({0,0,0},pos,name,false)
+			t.createTown({0,0,10},pos,name,false)  -- {0,0,0} is possible but rare crash when used in new map first time
 		else
 			print("Town "..name, "under water!")
 		end
