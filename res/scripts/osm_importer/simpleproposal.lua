@@ -146,13 +146,11 @@ function s.SimpleProposal(nodes,edges)
 		if not tangent then
 			return
 		end
-		local n0 = getNode(nodeId)[string.format("path_%s_predecessor",etype)]
-		if not n0 then print( "Node no path_predecessor "..nodeId) return end
-		local n2 = getNode(nodeId)[string.format("path_%s_successor",etype)]
-		if not n2 then print("Node no path_successor "..nodeId)return end
-		local n0pos = getNodePos(n0)
+		local n02 = getNode(nodeId)[string.format("path_%s",etype)]
+		if not n02 then print( "Node no path_predecessor "..nodeId) return end
+		local n0pos = getNodePos(n02[1][1])
 		local pos = getNodePos(nodeId)
-		local n2pos = getNodePos(n2)
+		local n2pos = getNodePos(n02[1][2])
 		local length = tools.VecDist(diff)
 		local tangZ = 0
 		local tangZ01 = (pos.z-n0pos.z)/tools.VecDist(pos-n0pos)

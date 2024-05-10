@@ -50,6 +50,9 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         pos = list(transf(node.lat, node.lon))
         data["nodes"][id] = {
             "pos": pos,
+            "way_start_to": [],
+            "way_end_from": [],
+            "way_within": [],
             "outofbounds": tags.get("outofbounds"),
             # "railway": tags.get("railway"),
             "switch": trueornil(tags.get("railway") == "switch"),
@@ -214,6 +217,11 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                     "bridge": False if tags.get("bridge") == "no" else tags.get("bridge"),
                     "tunnel": False if tags.get("tunnel") == "no" else tags.get("tunnel"),
                 }
+
+            data["nodes"][wnodes[0]]["way_start_to"].append(wnodes[1])
+            data["nodes"][wnodes[-1]]["way_end_from"].append(wnodes[-2])
+            for i in range(1, len(wnodes) - 1):
+                data["nodes"][wnodes[i]]["way_within"].append([wnodes[i - 1], wnodes[i + 1]])
 
             if data["nodes"][wnodes[0]]["outofbounds"]:
                 data["nodes"][wnodes[0]]["endpoint"] = True

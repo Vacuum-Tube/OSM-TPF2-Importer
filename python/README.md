@@ -152,8 +152,20 @@ This requires to determine tangent vectors for the edges, which should match at 
 This is especially important for tracks, as otherwise your trains would go [zig-zag](https://www.youtube.com/shorts/8kS80uvRL3U). 
 But also for streets it turns out that it's useful to align the tangents, at least for low intersection angles.
 
+<p align="middle"><img src="../doc/pics/osm_curve_nodes.png" width="90%" /></p>
+
 To tackle this, I create graphs of the track and street network using `networkx`. 
-This way, we can find the "paths", i.e. a list of nodes between crossings/endpoints (nodes with degree>2). 
+With this, we can extract the "paths", i.e. a list of nodes that represents a continous way of a street, track, or tram. 
+Paths are similar to the Ways provided by OSM, but can also span over several Ways.
+Until version 1.2 the approach of [OSMnx](https://github.com/gboeing/osmnx/blob/main/osmnx/simplification.py) was used and adapted for undirected graphs.
+Here, a path always ended between crossings, i.e. nodes with degree>2.
+With the new approach, the geometry is much better because the paths span beyond crossings, e.g. switches in a rail yard.
+
+Things always got complicated when there are tracks on streets.
+A lot of workarounds for these edge cases was needed.
+Not only can a OSM way say it is a "highway" and "railway" simultaneously but it also happens that there are multiple parallel ways using the same nodes.
+In the end, the infrastructures cannot be modeled as a simple (directed) graph, but could be seen as a [multigraph](https://en.wikipedia.org/wiki/Multigraph).
+
 Consequently, the normalized tangents along the path for a node $n_1$ with position $p_1=(x_1,y_1)$ can be calculated as the average of the tangents $t_{01}=(p_1 - p_0)$ and $t_{12}$ of the two neighboring edges behind and after the node, which is the same as the tangent created by the previous and the following node:
 
 $normalize(t_{01}+t_{12})=normalize(p_2-p_0)$
@@ -173,6 +185,8 @@ Obviously, OSM data is not so smooth as it looks at first.
   <img src="../doc/pics/curve_vxy.png" width="49%" />
   <img src="../doc/pics/curve_axy.png" width="49%" /> 
 </p>
+
+At all switches, the tangents are aligned in their direction, so that TPF2 is happy and can build them.
 
 With the z value, the tangent calculation is done a bit differently because the above method can lead to overshooting,
 i.e. more curvature than wanted. Here, the z-tangent at node $n_1$ is chosen as the minimum of the adjacent tangents $t_
