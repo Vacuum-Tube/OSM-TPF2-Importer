@@ -35,7 +35,7 @@ Run it in the command line with a command like follows
 ```
 main.exe map.osm osmdata.lua 16384,16384 47.6833,8.5969,47.7103,8.6698
 ```
-or use the run.bat file.
+or use the run.bat file (wait until the window disappears!).
 The input arguments are:
 
 - Arg1: Input file

@@ -61,8 +61,16 @@ You can skip "Berlin Stadtbahn Viaduct Construction" if you are sure that [your 
 ## Forest Placement Function
 - Forester (version "vt_snowball_forester_1.4_Interface") https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/
 
+## Other
+- [CommonAPI2](https://www.transportfever.net/filebase/index.php?entry/4806-commonapi2/) (only for Step1+2 of Import, could be deactivated afterwards)
+
+## Default
+- Sandbox
+- and enable Debug Mode
+
 ## Additional useful mods for Replication projects that should be activated BEFORE the osm import
 
 - Realistic Railway Slopes; to reduce embankment to avoid trouble with height differences (Embankment Slope: 1, Embankment Slope High: off) https://steamcommunity.com/sharedfiles/filedetails/?id=2161175689
 - Maximum Street Slopes; to reduce embankment to avoid trouble with height differences (Embankment Slope: 1, Embankment Slope High: off) https://steamcommunity.com/sharedfiles/filedetails/?id=2206802861
 - Realistic Track Curve Speeds (uncheck "No superelevation at speed restricted tracks") https://steamcommunity.com/sharedfiles/filedetails/?id=2558586098
+- Sidewalk Lowerer https://www.transportfever.net/filebase/entry/7446-gehweg-absenker/ (there is an updater tool but takes time and can create issues)

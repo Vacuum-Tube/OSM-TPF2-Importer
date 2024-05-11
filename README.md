@@ -2,23 +2,22 @@
 
 # OSM-TPF2 Importer
 
-This is an OpenStreetMap Import Tool for [Transport Fever 2](https://www.transportfever2.com/) for the automated reconstruction of real world places.
+This is a tool for the simulation game [Transport Fever 2](https://www.transportfever2.com/) (TPF2) for the automated reconstruction of real world places using OpenStreetMap data.
 
-Few TPF2 players have dared to start a "Replication" project (virtual reconstruction of real environments) and maybe you already thought of rebuilding your home town.
+Few players have dared to start a "Replication" project (virtual reconstruction of real environments) in TPF2 and maybe you already thought of recreating your home town.
 However, often motivation runs out after a while, simply because of the sheer number of tracks, roads, buildings, vegetation, etc to rebuild, quickly becoming monotonous.
 
-OpenStreetMap (OSM) provides worldwide, detailed, and accessible map data, including streets, railways, buildings, vegetation and much more.
-This tool aims at using this data to bring it into TPF2 in an automated way.
+OpenStreetMap (OSM) provides detailed, worldwide, and free map data, including streets, railways, buildings, vegetation and much more.
+Therefore, this tool aims at using this data to bring it into TPF2 in an automated way.
 Currently, tracks, streets, forests, town labels, and some point objects can be imported.
-
-Therefore, this tool can be used as a starting point to accelerate the replication of a real world area.
+This tool can be used as a starting point to accelerate the replication of a real world area.
 Having the basic infrastructure and vegetation already in the game might help to keep the motivation on continuing with the reconstruction project.
 
 **Despite the automation, this is no "one-click" tool!**
 You need to have basic TPF2 knowlegde and a bit of LUA experience. 
 I created a comprehensive tutorial, but I don't cover TPF2 basics.
 
-While dealing with OSM data and the TPF2 modding interface, several challenges have been encountered and approached in this tool in order to convert, transform, and optimize the OSM data accordingly and make it usable in a sandbox transport game, as Transport Fever 2.
+While dealing with OSM data and the TPF2 modding interface, several challenges have been encountered and approached in this tool in order to convert, transform, and optimize the OSM data accordingly and make it usable in a sandbox transport simulation game, as Transport Fever 2.
 
 Demonstration Video: https://youtu.be/V_L-CaPWk1Y
   --  More pictures [here](https://www.transportfever.net/gallery/album/3768)
@@ -57,8 +56,8 @@ The OSM data needs to be processed and some optimizations are necessary to make 
 More details [here](/python/README.md#details).
 
 
-## OSM data used for Automation
-The following information from OSM data is used and extracted for the automated import:
+## OSM Data used
+The following information from OSM elements is used and extracted during the automated import:
 
 - Streets and footpaths
     - type of street (e.g. urban, rural, motorway)
@@ -179,6 +178,10 @@ For issues, questions, and feedback, please use the Issues Tab or Discussions in
 
 For other requests: vacuumtubetrain@gmail.com 
 (but I cannot provide support for TPF2 basics, please use Steam or [transportfever.net](https://www.transportfever.net/) for that)
+
+## Contributions
+Fixes, Improvements, and additional features are welcome any time. 
+Feel free to make a PR.
 
 ## Support
 [![](https://raw.githubusercontent.com/Vacuum-Tube/Advanced_Statistics_1/main/pictures/paypal.png)](https://www.paypal.com/paypalme/VacuumTubeTPF)
