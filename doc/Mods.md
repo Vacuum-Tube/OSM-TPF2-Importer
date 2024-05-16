@@ -31,7 +31,7 @@ You can skip "Berlin Stadtbahn Viaduct Construction" if you are sure that [your 
 - Marc's Street and Trampack https://steamcommunity.com/sharedfiles/filedetails/?id=1933747406
 - Airport Roads (EXPERIMENTAL) https://steamcommunity.com/sharedfiles/filedetails/?id=2232249704 
 - Roads´n Trams Projekt (RTP) https://www.transportfever.net/filebase/entry/5675-roads-n-trams-projekt-rtp/
-- SMP 2.0 https://www.transportfever.net/filebase/entry/4976-smp-2-0/
+- SMP 2.0 https://steamcommunity.com/workshop/filedetails/?id=1943578742
 - Joe Fried Straßenpaket: Straßengeschichte (joefried_roadstrassen_em_2) https://www.transportfever.net/filebase/entry/5264-joe-fried-stra%C3%9Fenpaket-stra%C3%9Fengeschichte/
 - Autobahnkreuz TpF2 https://www.transportfever.net/filebase/entry/5157-autobahnkreuz-tpf2/
 - Water Textures - Natural Water Surfaces (activate Water 4 (4.2,4.3,4.4) and Street 4 with blue water) https://steamcommunity.com/workshop/filedetails/?id=2014569888
