@@ -152,7 +152,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
             "disused") == "tram"
         isstream = tags.get("waterway") in {"stream", "river"} and tags.get("tunnel", "no") == "no"
         isaeroway = "aeroway" in tags and tags.get("aeroway") in {"runway", "taxiway"}
-        isarea = tags.get("area") == "yes"  # closed way -> area (not always correctly set)
+        isarea = tags.get("area") == "yes" or "place" in tags  # closed way -> area (not always correctly set)
         isfloating = tags.get("floating") == "yes"
         if (isstreet and istrack):
             print("Warning: Way is street AND track", id)

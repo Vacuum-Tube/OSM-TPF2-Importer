@@ -4,47 +4,52 @@ import numpy as np
 
 from vec2 import Vec2
 from cubic_spline import MyCubicSpline as CubicSpline, approx_length_arc
-from graph_tools import create_graphs, create_sub_graph, create_bridge_graph, get_paths_to_simplify, is_node_removable, \
-    remove_node
+from graph_tools import create_graph, create_sub_graph, create_bridge_graph, create_ground_graph, \
+    get_paths_to_simplify, is_node_removable, remove_node
 
 
 def optimize(data):
     # 1. Avoid very long edges (can cut through terrain, and affects curve splines negatively)
     print("=" * 16 + " Split long Edges " + "=" * 16)
-    split_long_edges(data["nodes"], data["edges"], 100, etype="street")
-    split_long_edges(data["nodes"], data["edges"], 200, etype="track")
+    split_long_edges(data["nodes"], data["edges"], 80, etype="street")
+    split_long_edges(data["nodes"], data["edges"], 150, etype="track")
 
     # 2. Create graph and obtain paths
     print("=" * 16 + " Create Graphs " + "=" * 16)
-    g, gd = create_graphs(data["nodes"], data["edges"])
+    g = create_graph(data["nodes"], data["edges"])
     gs = create_sub_graph(g, "STREET")
     print("Street: ", gs)
-    gt = create_sub_graph(gd, "TRACK")  # we need a directed graph for the signal direction
+    gt = create_sub_graph(g, "TRACK")
     print("Track: ", gt)
     gb = create_bridge_graph(g)
     print("Bridge: ", gb)
-    paths_track = list(get_paths_to_simplify(gt, maxangle=45))
-    paths_street = list(get_paths_to_simplify(gs, maxangle=30))
+    gg = create_ground_graph(g)  # complement of bridge graph
+    print("Ground: ", gg)
+    paths_track = list(get_paths_to_simplify(gt, maxangle=45, continue_through_crossings=True))
+    paths_street = list(get_paths_to_simplify(gs, maxangle=30, continue_through_crossings=True))
     paths_bridge = list(get_paths_to_simplify(gb))
+    paths_ground = list(get_paths_to_simplify(gg))  # paths end at endpoints (degree!=2)
     data["paths"] = {
         "track": paths_track,
         "street": paths_street,
         "bridge": paths_bridge,
+        "ground": paths_ground,
     }
     print(f"Track Paths: {len(paths_track)} , Av len: {np.array([len(p) for p in paths_track]).mean():.1f}")
     print(f"Street Paths: {len(paths_street)} , Av len: {np.array([len(p) for p in paths_street]).mean():.1f}")
     print(f"Bridge Paths: {len(paths_bridge)} , Av len: {np.array([len(p) for p in paths_bridge]).mean():.1f}")
+    print(f"Ground Paths: {len(paths_ground)} , Av len: {np.array([len(p) for p in paths_ground]).mean():.1f}")
 
     # 3. Remove Nodes to improve curve geometry and reduce number of segments
     print("=" * 16 + " Remove Nodes with high curvature " + "=" * 16)
-    remove_nodes_curvature(paths_track, g, gt, gs, data["nodes"], data["edges"], maxlength=200, maxangle=30)
+    remove_nodes_curvature(paths_track, g, gt, gs, data["nodes"], data["edges"], maxlength=175, maxangle=30)
     remove_nodes_curvature(paths_street, g, gt, gs, data["nodes"], data["edges"], maxlength=100, maxangle=25)
     print("=" * 16 + " Remove unnecessary short Edges " + "=" * 16)
     remove_short_unnecessary_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], maxlength=100, maxangle=35)
-    remove_short_unnecessary_edges(paths_street, g, gt, gs, data["nodes"], data["edges"], maxlength=70, maxangle=30)
+    remove_short_unnecessary_edges(paths_street, g, gt, gs, data["nodes"], data["edges"], maxlength=60, maxangle=30)
     print("=" * 16 + " Remove short Edges " + "=" * 16)
-    remove_short_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 10)
-    remove_short_edges(paths_street, g, gt, gs, data["nodes"], data["edges"], 5)
+    remove_short_edges(paths_track, g, gt, gs, data["nodes"], data["edges"], 10, maxangle=15)
+    remove_short_edges(paths_street, g, gt, gs, data["nodes"], data["edges"], 3, maxangle=15)
 
     # 4. Calculate tangents for curved edge paths
     print("=" * 16 + " Calculate Tangents " + "=" * 16)
@@ -58,6 +63,9 @@ def optimize(data):
     # 5. Add signal information to edges
     print("=" * 16 + " Adjust Signals " + "=" * 16)
     adjust_signals(data["nodes"], g)
+
+    adjust_other_paths(paths_bridge, data["nodes"])
+    adjust_other_paths(paths_ground, data["nodes"])
 
     # remove unnecessary data
     for nid, node in data["nodes"].items():
@@ -118,7 +126,7 @@ def split_long_edges(nodes, edges, max_edge_length, etype=None):
         edges.pop(key)
 
 
-def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
+def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length, maxangle):
     for path in paths:  # node_ids
         skip_edges = set()
         while len(path) > 3:
@@ -152,11 +160,16 @@ def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
                 node_rem = path[idx + 1]
                 node_keep = path[idx]
                 node_correct = path[idx + 2]
+                t01 = y[idx + 1] - y[idx]
+                t12 = y[idx + 2] - y[idx + 1]
             else:  # replace with predecessor
                 node_rem = path[idx]
                 node_keep = path[idx + 1]
                 node_correct = path[idx - 1]
-            if is_node_removable(g, gt, gs, node_rem, exclude_bridges=True, printt=False):
+                t01 = y[idx] - y[idx - 1]
+                t12 = y[idx + 1] - y[idx]
+            if is_node_removable(g, gt, gs, node_rem, exclude_bridges=True, printt=False) \
+                    and Vec2.angle(t01, t12) < maxangle / 180 * pi:
                 print(f"Remove Edge({path[idx]},{path[idx + 1]}) is short ({lens[idx]:.4g})")
                 if not remove_node(g, nodes, edges, path, node_rem, node_keep, node_correct):
                     break
@@ -165,7 +178,7 @@ def remove_short_edges(paths, g, gt, gs, nodes, edges, min_edge_length):
                 # print("Cannot remove", node_rem)
 
 
-def remove_nodes_curvature(paths, g, gt, gs, nodes, edges, maxlength, maxangle=30):
+def remove_nodes_curvature(paths, g, gt, gs, nodes, edges, maxlength, maxangle):
     for path in paths:
         skip_nodes = set(path[i] for i in range(1, len(path) - 1)
                          if not is_node_removable(g, gt, gs, path[i]))
@@ -341,7 +354,10 @@ def add_curve_tangents(paths, g, method, maxangle, warnangle):
                     if not .7 < tang.length() < 1.5:
                         print(f"WARNING: at {n1} spline tang length {tang}")
                     maxerr = cerr.maxerr_at_node(i)
-                    if e01['street'] and maxerr > 8 or e01['track'] and maxerr > 15:
+                    # cant make this smaller because of node reductions; heuristic: adjacent short and long segments often create bad splines
+                    if e01['street'] and maxerr > 8 or e01['track'] and maxerr > 15 or \
+                            (e01['street'] and maxerr > 5 and not e01['street']['type'].endswith("_link") and
+                             max(t01.length(), t12.length()) / min(t01.length(), t12.length()) > 4):
                         print(f"WARNING Spline maxerr: {maxerr:.3f} at {n1} {etype}")
                         if e01['street']:
                             continue  # skip to use straight tangent
@@ -427,3 +443,9 @@ def adjust_signals(nodes, g):
                     print("WARNING: signal on more than 1 path", nid, node)
             else:
                 print(f"Node {nid} signal but no path info")
+
+
+def adjust_other_paths(paths, nodes):
+    for path in paths:  # remove deleted nodes
+        for node in [n for n in path if nodes[n].get("removed")]:
+            path.remove(node)

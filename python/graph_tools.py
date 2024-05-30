@@ -4,27 +4,28 @@ import networkx as nx
 from vec2 import Vec2
 
 
-def create_graphs(nodes, edges):
+def create_graph(nodes, edges):
     g = nx.Graph()  # undirected graph
-    gd = nx.DiGraph()  # directed graph
     for id, node in nodes.items():
-        for gi in [g, gd]:
-            gi.add_node(id, data=node, pos=Vec2(node["pos"]), endpoint=node.get("endpoint"))
+        g.add_node(id, data=node, pos=Vec2(node["pos"]), endpoint=node.get("endpoint"))
+    remove_edges = []
     for id, edge in edges.items():
         assert bool(edge["track"]) ^ bool(edge["street"]), f"Edge has to be track OR street {id}"
         if g.has_edge(edge["node0"], edge["node1"]):  # duplicate edges can exist because of mapping errors or...
-            print(f'Edge({edge["node0"]},{edge["node1"]}) {id} already exist! '
-                  f'(type: {g.edges[edge["node0"], edge["node1"]]["type"]})')
-            if edge["track"]:  # ...tracks on streets. priorize street.
-                continue  # (by overiding the edge, but works only for undirected!)
-            if gd.has_edge(edge["node1"], edge["node0"]):
-                gd.remove_edge(edge["node1"], edge["node0"])  # avoid duplicate edge for directed graph
-        for gi in [g, gd]:
-            gi.add_edge(edge["node0"], edge["node1"], name=id, data=edge,
-                        type=edge["track"] and "TRACK" or edge["street"] and "STREET")
+            exedge = g.edges[edge["node0"], edge["node1"]]
+            print(f'Edge {id} ({edge["node0"]},{edge["node1"]}) already exist! (type: {exedge["type"]})')
+            if edge["street"] and exedge["type"] == "TRACK":  # ...tracks on streets. priorize street (by overiding)
+                g.remove_edge(edge["node0"], edge["node1"])
+                remove_edges.append(exedge["name"])
+            else:  # ignore and delete duplicate edge
+                remove_edges.append(id)
+                continue
+        g.add_edge(edge["node0"], edge["node1"], name=id, data=edge,
+                   type=edge["track"] and "TRACK" or edge["street"] and "STREET")
+    for e in remove_edges:  # remove duplicate edges also from list
+        edges.pop(e)
     g.remove_nodes_from(list(nx.isolates(g)))  # remove nodes not connected to any edges
-    gd.remove_nodes_from(list(nx.isolates(gd)))
-    return g, gd
+    return g
 
 
 def create_sub_graph(g, etype):
@@ -37,6 +38,13 @@ def create_sub_graph(g, etype):
 def create_bridge_graph(g):
     g2 = g.copy()
     g2.remove_edges_from(filter(lambda e: not g.edges[e]["data"]["bridge"], g.edges))
+    g2.remove_nodes_from(list(nx.isolates(g2)))
+    return g2
+
+
+def create_ground_graph(g):
+    g2 = g.copy()
+    g2.remove_edges_from(filter(lambda e: g.edges[e]["data"]["bridge"] or g.edges[e]["data"]["tunnel"], g.edges))
     g2.remove_nodes_from(list(nx.isolates(g2)))
     return g2
 
@@ -151,7 +159,7 @@ def is_endpoint(g, node, maxangle=None):
     return False
 
 
-def get_paths_to_simplify(g, maxangle=None):
+def get_paths_to_simplify(g, maxangle=None, continue_through_crossings=False):
     endpoints = set(n for n in g.nodes if is_endpoint(g, n, maxangle=maxangle))  # misses isolated loops
     usededges = nx.Graph()
     try_nodes = []
@@ -164,11 +172,13 @@ def get_paths_to_simplify(g, maxangle=None):
     for endpoint in endpoints:
         for nodes in g.nodes[endpoint]["data"]["way_within"]:
             try_nodes.append((endpoint, nodes[1]))
+    for endpoint in endpoints:
+        for nodes in g.nodes[endpoint]["data"]["way_within"]:
             try_nodes.append((endpoint, nodes[0]))
     for endpoint, successor in try_nodes:
         if (g.has_edge(endpoint, successor) or g.has_edge(successor, endpoint)) \
                 and not usededges.has_edge(endpoint, successor):
-            path = build_path(g, endpoint, successor, endpoints, usededges, maxangle=maxangle)
+            path = build_path(g, endpoint, successor, endpoints, usededges, maxangle, continue_through_crossings)
             assert path[0] in endpoints and path[-1] in endpoints, path
             for i, j in zip(path[:-1], path[1:]):
                 usededges.add_edge(i, j)
@@ -178,12 +188,12 @@ def get_paths_to_simplify(g, maxangle=None):
         print(f"WARNING usededges graph not equal to g ", usededges)
 
 
-def build_path(g, endpoint, endpoint_successor, endpoints, usededges, maxangle=None):
+def build_path(g, endpoint, endpoint_successor, endpoints, usededges, maxangle=None, continue_through_crossings=False):
     path = [endpoint, endpoint_successor]
     successor = endpoint_successor
     while True:
         if successor in endpoints:
-            if g.degree(successor) > 2 and successor != endpoint:
+            if continue_through_crossings and g.degree(successor) > 2 and successor != endpoint:
                 continu = False
                 p1 = g.nodes[successor]["pos"]
                 for n_pre, n_suc in g.nodes[successor]["data"]["way_within"]:
