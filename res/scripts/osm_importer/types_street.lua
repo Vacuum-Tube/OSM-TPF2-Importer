@@ -2,10 +2,12 @@ local tools = require"osm_importer.tools"
 
 local st = {}
 
-st.fallback_type = "01_fusswege/01_fussweg_roter_schotter.lua"
--- st.small_type = "lollo_1m_path.lua"
--- st.small_type = "lollo_ultrathin_path.lua"
+st.fallback_type = "01_fusswege/01_fussweg_roter_schotter.lua" -- < choose this to better detect unknown types
+-- st.fallback_type = "01_fusswege/01_fussweg_asphalt.lua" -- < choose this for visual appearance
+
 st.small_type = st.fallback_type
+-- st.small_type = "lollo_1m_path.lua"
+
 
 function st.getType(street,options)
 	-- if true then return st.fallback_type end

@@ -188,17 +188,27 @@ Obviously, OSM data is not so smooth as it looks at first.
 
 At all switches, the tangents are aligned in their direction, so that TPF2 is happy and can build them.
 
-With the z value, the tangent calculation is done a bit differently because the above method can lead to overshooting,
-i.e. more curvature than wanted. Here, the z-tangent at node $n_1$ is chosen as the minimum of the adjacent tangents $t_
-{01,z}$ and $t_{12,z}$ (and 0 if they have different sign) to keep slopes low at the nodes. This will lead to better
-geometry. However, the implementation gets more tricky because the height is only determined in the game from the
-terrain.
+With the z value (height), the tangent calculation is done differently because splines can lead to overshooting, i.e. more curvature than wanted.
+Here, the z-tangent at node $n_1$ is chosen as the minimum of the adjacent tangents (normalized, i.e. slopes) $t_{01,z}$ and $t_{12,z}$ and 0 if they have different sign, to keep slopes low at the nodes. 
+This will lead to better geometry. 
+The implementation is located in the Lua part because the height is only determined in the game from the terrain.
+
+Before that, the z values are smoothened along paths by sampling the terrain on the edges between the nodes.
+This way, the exact node position becomes less important and terrain jumps can be smoothened out.
+This is useful because you don't want to consider nodes positions during terrain preperation.
+E.g. if the nodes of two tracks are not symmetric, the tracks will differ in height.
+The method used here is a Gaussian filter.
+Tracks are smoothed with sigma=50 and streets with 25 meters.
+However, it is not perfect as it only works with fixed window size and cannot prevent too high slopes.
+For this, a non-linear filter would be necessary that can "shift" slopes above a limit to the path before and behind.
+
+<p align="middle"><img src="../doc/pics/slope_step_rail.png" width="95%" /></p>
 
 ## Other Edge Optimizations
 
-Additionally, we want to avoid very long edges, as they can cut through terrain, since the height is only determined at
-nodes. The code is splitting edges that are longer than a maximum value (actually the game does the same when you lay
-streets or tracks).
+Additionally, we want to avoid very long edges, as they can cut through terrain, since the height is only determined at nodes. 
+Also, long edges can create issues for the spline interpolation.
+The code is splitting edges that are longer than a maximum value (actually the game does the same when you lay streets or tracks).
 
 Very short pieces of track can also be annoying and create too much curvature, when the node mapping was done unprecisely. 
 There is a function to calculate the curvature along the curve.

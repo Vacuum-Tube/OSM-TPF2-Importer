@@ -1,31 +1,17 @@
 local simpleproposal = require"osm_importer.simpleproposal"
+local nodesheights = require"osm_importer.nodesheights"
 local tools = require"osm_importer.tools"
 local timer = require"osm_importer.timer"
 
 local s = {}
 
-function s.setNodesHeight(nodes,paths)
-	for id,node in pairs(nodes) do  -- fix all node heights before anything is built
-		node.pos[3] = tools.getTerrainZ(node.pos[1], node.pos[2])
-	end
-	for _,path in pairs(paths.bridge) do  -- linear interpolation to place intermediate bridge nodes in the air
-		local p_start = tools.Vec2f(nodes[path[1]].pos)
-		local p_end = tools.Vec2f(nodes[path[#path]].pos)
-		local z_start = nodes[path[1]].pos[3]
-		local z_end = nodes[path[#path]].pos[3]
-		for i,node in pairs(path) do
-			local p_i = tools.Vec2f(nodes[path[i]].pos)
-			if i>1 and i<#path then
-				nodes[node].pos[3] = z_start + (z_end-z_start)*tools.VecDist(p_start,p_i)/tools.VecDist(p_start,p_end)
-			end
-		end
-	end
-end
 
 function s.SimpleProposalSeq(data,options) 
 	osm_importer.options = assert(options, "Options not defined")
 	s.stop = false
 	s.data = data
+	assert(not s.called, 'Already called, reload osm_importer before use again, enter: "m.reload()"')
+	s.called = true
 	s.cbLevel = options.log_level or 1
 	assert(type(s.cbLevel)=="number")
 	
@@ -34,8 +20,8 @@ function s.SimpleProposalSeq(data,options)
 	timer.start()
 	print("Options: "..toString(options))
 	
-	print("Set Nodes z height")
-	s.setNodesHeight(data.nodes, data.paths)
+	print("Set Nodes z height and tangents...")
+	nodesheights.setAllNodesHeight(data.nodes, data.paths, data.edges)
 	
 	s.seqlist = {}  -- List of individual build Cmds
 	for i,edge in pairs(data.edges) do

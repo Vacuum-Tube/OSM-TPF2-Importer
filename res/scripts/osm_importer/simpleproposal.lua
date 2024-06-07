@@ -142,39 +142,6 @@ function s.SimpleProposal(nodes,edges)
 		end
 	end
 	
-	local function getNodeTan(nodeId,tangent,diff,etype)
-		if not tangent then
-			return
-		end
-		local n02 = getNode(nodeId)[string.format("path_%s",etype)]
-		if not n02 then print( "Node no path_predecessor "..nodeId) return end
-		local n0pos = getNodePos(n02[1][1])
-		local pos = getNodePos(nodeId)
-		local n2pos = getNodePos(n02[1][2])
-		local length = tools.VecDist(diff)
-		local tangZ = 0
-		local tangZ01 = (pos.z-n0pos.z)/tools.VecDist(pos-n0pos)
-		local tangZ12 = (n2pos.z-pos.z)/tools.VecDist(n2pos-pos)
-		if tangZ12/tangZ01<0 then  -- rise and fall
-			tangZ = 0
-		else
-			if math.abs(tangZ01)>math.abs(tangZ12) then  -- keep slopes low at the starts/ends
-				tangZ = tangZ12*length
-			else
-				tangZ = tangZ01*length
-			end
-		end			
-		local tang = api.type.Vec3f.new(
-			tangent[1],
-			tangent[2],
-			tangZ 
-		)
-		if tang.z/diff.z<0 then
-			print("WARNING: different sign tangZ"..toString(tang).." - diff".. toString(diff))
-		end
-		return tang
-	end
-	
 	-- had to move nodes ids AFTER edges ONLY because of stupid assert when EdgeObjects are added: src/Game/scripting/util.cpp:131: struct construction_builder_util::Proposal __cdecl scripting::Convert(const struct street_util::StreetToolkit &,const struct scripting::Proposal &): Assertion `eo.edgeEntity.GetId() < 0 && eo.edgeEntity.GetId() >= -(int)result.proposal.addedSegments.size()' failed.
 	
 	for id,nodedata in pairs(nodes) do
@@ -194,7 +161,7 @@ function s.SimpleProposal(nodes,edges)
 	
 	for id,edgedata in pairs(edges) do
 		local idx = #sp.edgesToAdd
-		local edge, edgeobjects = s.Edge(-1-idx, edgedata, getNodeEntity, getNodePos, getNodeTan)
+		local edge, edgeobjects = s.Edge(-1-idx, edgedata, getNodeEntity, getNodePos)
 		if edge then
 			sp.edgesToAdd:add(edge)
 			if edgedata.street and edgedata.street.type=="waterstream" then
@@ -237,7 +204,7 @@ function s.Node(id,node)
 	return n
 end
 
-function s.Edge(id,edge,getNodeEntity,getNodePos,getNodeTan)
+function s.Edge(id,edge,getNodeEntity,getNodePos)
 	local e = api.type.SegmentAndEntity.new()
 	assert(id<0)
 	e.entity = id or -1
@@ -247,17 +214,22 @@ function s.Edge(id,edge,getNodeEntity,getNodePos,getNodeTan)
 	playerOwnedComponent.player = game.interface.getPlayer()
 	e.playerOwned = playerOwnedComponent  -- lock streets to prevent automatic town development
 	
-	local etype = edge.track and "track" or "street"
-	
 	e.comp.node0 = getNodeEntity( assert(edge.node0, "No node0 for entity: "..id))
 	e.comp.node1 = getNodeEntity( assert(edge.node1, "No node1 for entity: "..id))
 	
 	local tang_straight = getNodePos(edge.node1) - getNodePos(edge.node0)  -- straight edge
-	local curved = true
-	e.comp.tangent0 = curved and getNodeTan(edge.node0, edge.tangent0, tang_straight, etype) or tang_straight
-	e.comp.tangent1 = curved and getNodeTan(edge.node1, edge.tangent1, tang_straight, etype) or tang_straight
+	e.comp.tangent0 = edge.tangent0 and api.type.Vec3f.new(
+		edge.tangent0[1] or tang_straight.x, 
+		edge.tangent0[2] or tang_straight.y, 
+		edge.tangent0[3] or tang_straight.z
+	) or tang_straight
+	e.comp.tangent1 = edge.tangent1 and api.type.Vec3f.new(
+		edge.tangent1[1] or tang_straight.x, 
+		edge.tangent1[2] or tang_straight.y, 
+		edge.tangent1[3] or tang_straight.z
+	) or tang_straight
 	
-	if edge.nodes_reversed then
+	if edge.nodes_reversed then  -- reverse edge direction again to recover original direction (oneway)
 		e.comp.node0, e.comp.node1 = e.comp.node1, e.comp.node0
 		e.comp.tangent0, e.comp.tangent1 = tools.Vec3Mul(e.comp.tangent1, -1), tools.Vec3Mul(e.comp.tangent0, -1)
 	end

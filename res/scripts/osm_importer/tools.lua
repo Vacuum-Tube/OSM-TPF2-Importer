@@ -1,8 +1,9 @@
-local t = {}
-
 require "serialize"
 local vec3 = require "vec3"
 local streetutil = require "streetutil"
+
+
+local t = {}
 
 
 function t.list2dict(list)
@@ -13,6 +14,10 @@ function t.list2dict(list)
 	return dict
 end
 
+
+function t.vec3(v, z_default)
+	return vec3.new(v[1], v[2], v[3] or z_default)
+end
 
 function t.Vec2f(v)
 	return api.type.Vec2f.new(v[1], v[2])
@@ -52,6 +57,16 @@ function t.hermiteLength(p0, p1, t0, t1)
 	local dist = t.VecDist(p1, p0)
 	local angle = vec3.angleUnit(t.VecNormalize(t0), t.VecNormalize(t1))
 	return streetutil.calcScale(dist, angle)
+end
+
+function t.hermiteSpline(p0, p1, m0, m1, t)
+    local t2 = t * t
+    local t3 = t2 * t
+    local h00 = 2 * t3 - 3 * t2 + 1
+    local h01 = t3 - 2 * t2 + t
+    local h10 = -2 * t3 + 3 * t2
+    local h11 = t3 - t2
+    return h00 * p0 + h01 * m0 + h10 * p1 + h11 * m1
 end
 
 

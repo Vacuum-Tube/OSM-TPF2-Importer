@@ -127,10 +127,12 @@ Thus, a flat map makes everything easier.
 
 For these reasons, it is recommended to keep as many areas as possible flat.
 Try to shift the slope away from infrastructures, e.g. to vegetation.
-If you used a heightmap, feel free to generously flatten areas that are not apparently hilly.
+If you used a heightmap, feel free to generously flatten areas that should not explicitely be hilly.
+Dense complex infrastructure, like rail yards with many switches should get completely flat terrain to avoid any hassles.
 In the end, heightmaps contain errors anyway and the goal is just to represent the significant terrain.
 
-If your heightmap is coming from a DSM, keep in mind that the errors might be larger and e.g. forests will show unrealistic terrain increase.
+If your heightmap comes from a DSM, keep in mind that the errors might be significant.
+For example, forests will show terrain increase mistakenly.
 
 <p align="middle"><img src="pics/flattened.jpg" width="80%" /></p>
 
@@ -145,23 +147,27 @@ This concerns especially railways as they typically have low slope.
 Complex intersections can have 3 layers or more, which requires much space and embankments.
 Not planning the terrain before the OSM import will only shift the problem and result in unrealistic slopes or forcing you to bulldoze and reconstruct large areas.
 
+<p align="middle"><img src="pics/terrain_embankment.jpg" width="100%" /></p>
+
 Look at the OSM overlay and think how the intersections are handeled with bridges/tunnels and the surrounding embankments.
 Roughly sketch the heights with the terrain tools along tracks and streets.
-It doesn't have to be perfect, slopes will be smoothened in the postprocessing later.
+Smoothen the terrain around it, so surrounding paths will have reasonable heights.
+It doesn't have to be perfect, the slope itself doesn't need to be smoothend.
+Work with the flatten tool for every 1-2m height difference.
 Check the slopes with [Track/Street Builder Info](https://steamcommunity.com/sharedfiles/filedetails/?id=2298331429).
-Smoothen the terrain around it, so other paths will have reasonable heights.
 It might make sense to build street pieces as fix points to ease the smoothening (they will be deleted later with a command anyway).
 
-<p align="middle">
-  <img src="pics/bridge_terrain.jpg" width="49%" />
-  <img src="pics/bridge_osm_terrain.jpg" width="49%" />
-</p>
+During the import, the height of tracks/streets is simply determined by the terrain height at the location of nodes.
+Since v1.3 there is a smoothing algorithm along paths, so terrain jumps can be handeled better, independently from the exact node locations.
+However, this only affects paths without crossings.
+Therefore, keep areas with many close nodes flat and shift the height difference to where the streets/tracks don't have crossings.
 
-During the import, the height of tracks/streets is simply determined by the terrain height at the location of nodes (but only there!).
-Bridge nodes are linearly interpolated between the endpoints, so they are not on the ground.
-Thus, for bridges try to include the point where the bridge starts, so that the endpoints have a good position.
+<p align="middle"><img src="pics/terrain_bridge.jpg" width="70%" /></p>
 
-Depending on your map size and the infrastructure density of your area, this task may take some time, so don't underestimate this part.
+Bridge nodes are linearly interpolated between the endpoints (works only for bridges without crossings), so they are not on the ground.
+Thus, try to **include the point where the bridge starts because there is always a node and its height will be fixed.**
+
+Depending on your map size and the infrastructure density of your area, this task may take a lot of time, so don't underestimate this part.
 
 ## Bridge heights
 Bridges (and tunnels) need a certain height difference, otherwise the result will be unappealing.
@@ -230,8 +236,9 @@ The speed layer can be used to quickly detect these.
 
 ![](/doc/pics/track_speeds.jpg)
 
-As curves in OSM are just modeled with many small straight segments, the node mapping may be imprecise sometimes.
+As curves in OSM are simply modeled with many small straight segments, the node mapping may be imprecise sometimes.
 This error is barely visible in maps, but not neglectible for games, like TPF2.
+Although the Converter does a good job in node reduction and tangent smoothing, there may be some results that are not perfect.
 You will most likely detect crooked edges by the lowered curve speed.
 
 ![](/doc/pics/unprecise_nodes.jpg)

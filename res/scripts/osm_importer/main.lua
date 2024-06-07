@@ -1,4 +1,3 @@
-print("Load osm_importer.main")
 
 osmdata = require"osm_importer.osmdata"
 bulldoze =  require "osm_importer.bulldoze"
@@ -13,6 +12,8 @@ osm_importer = {
 	-- options = {},
 }
 m = osm_importer
+
+print("Loaded osm_importer.main")
 
 
 --------------------------------------------------------------------------------

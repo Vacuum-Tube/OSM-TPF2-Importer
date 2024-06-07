@@ -51,7 +51,7 @@ In this case, first create a town anywhere and delete it.
 
 ## __2. Forests__
 Now we built forests and bush areas from the OSM data.
-To distribute various tree models in polygon areas, the [Forester Mod](https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/) is accessed (***make sure to use my Interface version 1.4***).
+To distribute various tree models in polygon areas, the [Forester Mod](https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/) is accessed (***IMPORTANT: make sure to use my Interface version 1.4***).
 If you don't want to use the forester, comment out the first line of [areas.lua](./areas.lua). 
 
 You can adjust the models and density in [forester.lua](./forester.lua); the default aims for a compromise between density and performance.
@@ -60,7 +60,7 @@ Execute this in _Script Thread_:
 ```lua
 m.areas.buildAreas(osmdata.areas, osmdata.nodes)
 ```
-Depending on the amount of forest there is, this command may take a while and freezes the game during execution.
+Depending on the amount of forest, this command may take a while and freezes the game during execution.
 
 ## __3. Street/Track Edges__
 This steps builds all streets and tracks, sequentially one-by-one.
@@ -93,15 +93,16 @@ Start the construction process with:
 ```lua
 m.simpleproposalseq.SimpleProposalSeq(osmdata, options)
 ```
-This can take a significant amount of time, but the game is still responsive.
+It may freeze at first, but then game is still responsive.
+Now, this can take a significant amount of time, depending on the map size several hours.
 Watch your infrastructure being built!
 
 The duration in seconds can be estimated with: `Number of edges / 5` 
-(have a look in the converter log for the number of edges).
-A time estimation and more information is also printed in the stdout.
+, but it's often a bit more (have a look in the converter log for the number of edges).
+The estimated time and more information is also printed in the stdout.
 I recommend to locate the camera to the edge of the map and use a FPS Limiter to reduce load and save energy.
 
-The order is determined by the highway type in the converter (see [sort_edges.py](/python/sort_edges.py)).
+The order is determined by the OSM highway type in the Converter (see [sort_edges.py](/python/sort_edges.py)).
 Tracks are build first, then major streets, minor ones, then small paths.
 
 After the process has finished, the error rate of edges that could not be built is shown in the log. 

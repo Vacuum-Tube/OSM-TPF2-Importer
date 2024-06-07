@@ -1,6 +1,7 @@
 local tt = {}
 
-tt.fallback_type = "ETH_Schotterbett.lua"
+tt.fallback_type = "ETH_Schotterbett.lua" -- < choose this to better detect unknown types
+-- tt.fallback_type = "standard.lua" -- < choose this for visual appearance
 
 
 ------------- Mods
