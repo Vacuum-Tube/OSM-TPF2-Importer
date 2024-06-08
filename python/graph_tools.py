@@ -55,8 +55,10 @@ def is_node_removable(g, gt, gs, node, exclude_bridges=False, printt=False):
         if printt:
             print(node, "is street and track node")
         return False
-    if g.nodes[node]["data"].get("added_long"):
-        return True
+    if g.nodes[node]["data"].get("added_long"):  # preserve long straight edges
+        return False
+    if g.nodes[node]["data"].get("long_edge"):
+        return False
     if g.nodes[node]["data"].get("signal") and any((g.nodes[node]["data"]["signal"][typ] for typ in [
         "main",  # types actually used in Lua
         "combined",

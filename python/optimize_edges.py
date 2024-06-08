@@ -88,6 +88,8 @@ def split_long_edges(nodes, edges, max_edge_length, etype=None):
         if length > max_edge_length:
             print(f"Split Edge({n0},{n1}) is long ({length:.4g})")
             remove_edges.append(eid)
+            nodes[n0]["long_edge"] = True
+            nodes[n1]["long_edge"] = True
             num_seg = math.ceil(length / max_edge_length)
             lastnode = n0
             for i in range(1, num_seg + 1):
@@ -102,6 +104,7 @@ def split_long_edges(nodes, edges, max_edge_length, etype=None):
                 newedge = edge.copy()
                 newedge["node0"] = lastnode
                 newedge["node1"] = newnodekey
+                newedge["long_edge"] = True
                 newedgekey = f"{eid}_{i}"
                 assert newedgekey not in edges
                 assert newedgekey not in add_edges
@@ -324,9 +327,9 @@ def add_curve_tangents(paths, g, method, maxangle, warnangle):
                 if minv < 0.1:
                     print(f"WARNING Edge({path[i]},{path[i + 1]}) low spline speed {minv}")
             cubic_tangs = [c.vi[i] if c.viabs[i] > 0 else None for i in range(1, len(path) - 1)]
-            if c.viabs[0] > 0:
+            if not g.nodes[path[0]]["data"].get("long_edge") and c.viabs[0] > 0:  # path start + end
                 g.edges[path[0], path[1]]["data"]["tangent0"] = (c.vi[0] * (x[1] - x[0])).toArray()
-            if c.viabs[-1] > 0:
+            if not g.nodes[path[-1]]["data"].get("long_edge") and c.viabs[-1] > 0:
                 g.edges[path[-1], path[-2]]["data"]["tangent1"] = (c.vi[-1] * (x[-1] - x[-2])).toArray()
             for angle in [
                 Vec2.angle(c.vi[0], y[1] - y[0]),
@@ -339,6 +342,8 @@ def add_curve_tangents(paths, g, method, maxangle, warnangle):
             p2 = g.nodes[n2]["pos"]
             t01 = p1 - p0
             t12 = p2 - p1
+            l01 = t01.length()
+            l12 = t12.length()
             e01 = g.edges[n0, n1]["data"]
             e12 = g.edges[n1, n2]["data"]
             etype = (e01['street'] and 'street(' + e01['street']['type'] or 'track(' + e01['track']['type']) + ")"
@@ -353,27 +358,39 @@ def add_curve_tangents(paths, g, method, maxangle, warnangle):
                         continue
                     if not .7 < tang.length() < 1.5:
                         print(f"WARNING: at {n1} spline tang length {tang}")
-                    maxerr = cerr.maxerr_at_node(i)
-                    # cant make this smaller because of node reductions; heuristic: adjacent short and long segments often create bad splines
-                    if e01['street'] and maxerr > 8 or e01['track'] and maxerr > 15 or \
-                            (e01['street'] and maxerr > 5 and not e01['street']['type'].endswith("_link") and
-                             max(t01.length(), t12.length()) / min(t01.length(), t12.length()) > 4):
-                        print(f"WARNING Spline maxerr: {maxerr:.3f} at {n1} {etype}")
-                        if e01['street']:
-                            continue  # skip to use straight tangent
+                    if e01.get("long_edge") and e12.get("long_edge"):
+                        if Vec2.angle(t01, t12) > 15 / 180 * pi:
+                            if e01['street']:
+                                continue  # skip to use straight tangent
+                            else:
+                                print(f"WARNING: High Angle {Vec2.angle(t01, t12) * 180 / pi:.3f} "
+                                      f"between long edges {n0},{n1},{n2} {etype}")
+                        # use Catmull–Rom tangent; is straight for splitted long edge to avoid curves from spline
+                        tang = (p2 - p0).normalize()
+                    elif e01.get("long_edge"):
+                        tang = t01.normalize()  # enforce tangent from long edge
+                    elif e12.get("long_edge"):
+                        tang = t12.normalize()
+                    else:
+                        maxerr = cerr.maxerr_at_node(i)
+                        # cant make this smaller because of node reductions; heuristic: adjacent short and long segments often create bad splines
+                        if e01['street'] and maxerr > 8 or e01['track'] and maxerr > 15 or \
+                                (e01['street'] and maxerr > 5 and not e01['street']['type'].endswith("_link") and
+                                 max(l01, l12) / min(l01, l12) > 4):
+                            print(f"WARNING Spline maxerr: {maxerr:.3f} at {n1} {etype}")
+                            if e01['street']:
+                                continue
                 else:
                     raise Exception("Unknown tangent method: " + method)
                 for angle in [Vec2.angle(tang, t01), Vec2.angle(tang, t12)]:
                     if angle > warnangle / 180 * pi:
                         print(f"WARNING Diff tang angle: {angle * 180 / pi:.3f} at {n1} {etype}")
                 if method in {"finite_difference", "Catmull–Rom"}:
-                    l01 = approx_length_arc(t01.length(), Vec2.angle(t01, tang))
-                    l12 = approx_length_arc(t12.length(), Vec2.angle(t12, tang))
-                    e01["tangent1"] = tang.normalize(l01).toArray()
-                    e12["tangent0"] = tang.normalize(l12).toArray()
+                    e01["tangent1"] = tang.normalize(approx_length_arc(l01, Vec2.angle(t01, tang))).toArray()
+                    e12["tangent0"] = tang.normalize(approx_length_arc(l12, Vec2.angle(t12, tang))).toArray()
                 elif method in {"natural"}:  # cubic spline was initialized with x (linear length)
-                    e01["tangent1"] = (tang * t01.length()).toArray()
-                    e12["tangent0"] = (tang * t12.length()).toArray()
+                    e01["tangent1"] = (tang * l01).toArray()
+                    e12["tangent0"] = (tang * l12).toArray()
             else:
                 print(f"Edges({n0},{n1},{n2}) above maxangle {Vec2.angle(t01, t12) * 180 / pi}")
 

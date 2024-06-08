@@ -29,6 +29,7 @@ local function run()
 	m.towns.createTownLabels(osmdata.towns)
 	m.towns.setAllTownsDevActive(false)  -- disable town development  -- USE: Script thread
 	bulldoze.delEdges() -- remove (ALL) built streets  -- USE: Script thread
+	bulldoze.delAssets()
 	
 	-- (2) Areas/forests  (before streets, so they remove trees)
 	m.areas.buildAreas(osmdata.areas, osmdata.nodes)  -- USE: Script thread
