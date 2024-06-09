@@ -3,15 +3,41 @@
 The Converter is an intermediate step between the OSM data and [OSM Builder](/res/scripts/osm_importer/) (the Lua part) to facilitate the data processing and prepare it for TPF2. 
 This tool is a Python script that converts the OSM data to a convenient Lua file.
 
-# Installation
 
-## Method 1: Use Python with virtual environment
+# Overview
+
+The input of the Converter is an OSM file that contains OSM data for your relevant area to be rebuild (see Tutorial for how to get OSM data).
+The file needs to end with `.osm`
+
+Your OSM file should only contain data within your map bounds.
+In case you use a predefined OSM file (e.g. Geofabrik) with an area larger than your TPF2 map, you first need to crop it to your map bounds by using [crop_osm.py](crop_osm.py) and Osmosis (more info [here](osmosis/README.md)).
+
+Before running the converter, you need to specify the map size and coordinates for your case.
+Find out the size of your TPF2 map, i.e. horizontal map lengths in meters. 
+Find the **exact** values [here](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/) (unfortunately the sizes in the [wiki](https://www.transportfever2.com/wiki/doku.php?id=gamemanual:mapsizes) are approximated) or with [Advanced Statistics](https://steamcommunity.com/sharedfiles/filedetails/?id=2454731512).
+Also, you need to be aware of the coordinates representing your map excerpt (see Tutorial).
+You should have them already defined, as the same coordinates should be used for the heightmap, overlay, and the OSM file.
+
+It is highly recommended to test the import for several small sub-areas (within your map bounds) before doing the import for the whole map.
+The command doesn't need to be adjusted for this - simply export an area from OSM and convert it.
+The sub-area should then be built at the correct location on the map.
+
+Technically, all node coordinates will be transformed in a way such that the map bounds coordinates are scaled to the length of the TPF map so that they are mapped exactly to the border of the map. 
+Therefore, it is your responsibility to check the sizes (and ratio if your map is not square).
+
+There are two methods how to use:
+
+
+# Method 1: Use Python with virtual environment
+To run Python code, you usually need to install Python.
+Python is a script language, like Lua.
+If you want to modify the code, you need to use this method.
+
 Install [Python](https://www.python.org/downloads/) (3.9).
 Windows users can download Python from the [Microsoft Store](https://apps.microsoft.com/detail/9p7qfqmjrfp7).
 
-Navigate to this "python" folder in the console.
-
-Create a local virtual environment:
+To run OSM-TPF Converter, create a local virtual environment.
+Navigate to this folder "python" in the console, then:
 ```
 python -m venv venv
 ```
@@ -21,71 +47,23 @@ Install the required packages:
 pip install -r requirements.txt
 ```
 
-You can then execute the script with
+You can then execute the script with:
 ```
 venv/Scripts/python main.py
 ```
-or [run_venv.bat](run_venv.bat) if you are on Windows.
+If you are on Windows, you can use [run_venv.bat](run_venv.bat) .
 
+For specifying your information, you can either edit [main.py](main.py) or use arguments for the command (which override the defaults in the file).
+For the use with arguments, see Method 2.
 
-## Method 2: Use Exe (Windows)
-If you don't want to install Python and are on Windows, you can simply use the exe application (find in [Releases](https://github.com/Vacuum-Tube/OSM-TPF2-Importer/releases)).
+The input file is set by the variable `INFILE`.
 
-Run it in the command line with a command like follows
-```
-main.exe map.osm osmdata.lua 16384,16384 47.6833,8.5969,47.7103,8.6698
-```
-or use the run.bat file (wait until the window disappears!).
-The input arguments are:
-
-- Arg1: Input file
-- Arg2: Output file
-- Arg3: Size of TPF2 map (comma-separated x and y length)
-- Arg4: Coordinates (comma-separated minlat, minlon, maxlat, maxlon)
-
-
-# Usage
-Before running the converter, you need to adjust some information for your case.
-Depending on which method used for installation, either edit [main.py](main.py) or use arguments (which override the defaults in the file).
-
-In [main.py](main.py), specify `INFILE` using your exported OSM file.
-
-In case you use a predefined OSM file (e.g. Geofabrik) with an area larger than your TPF2 map, you need to crop it to your map bounds before by using [crop_osm.py](crop_osm.py) and Osmosis (more info [here](osmosis/README.md)).
-
-Next, specify the size of your TPF2 map by adjusting this line
-
+The map size is set by adjusting this line:
 ```python
 bounds_length = (16384, 16384)  # for size "Very Large" 1:1
 ```
 
-with your horizontal map lengths in meters. Find the **exact** values [here](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/) (unfortunately the sizes in the [wiki](https://www.transportfever2.com/wiki/doku.php?id=gamemanual:mapsizes) are approximated) or with [Advanced Statistics](https://steamcommunity.com/sharedfiles/filedetails/?id=2454731512).
-
-Finally, you need to define the coordinates of your map excerpt. 
-All node coordinates will be transformed such that the bounds coordinates are scaled to `bounds_length` so that they are mapped exactly to the border of the TPF map. 
-Therefore, it is your responsibility to check the sizes (and ratio if your map is not square).
-
-The real distance of the bound coordinates in meters is printed in the log. 
-Note, that the longitudal length differs from the south to the north. 
-This is the moment, when you realize *that the earth is not flat...* and start thinking about projections (more info in details).
-
-```
-Distance of bounds: lon=24747-24634m , lat=24560m 
-```
-
-Compare this to your actual map length. 
-They don't have to match exactly (which is not possible anyway), but should be about correct. 
-If you don't plan a 1:1 reconstruction but a scaled one, you need to account for the respective factor here.
-
-You could just use the bounds of the OSM file, 
-then your OSM file is scaled to the whole map:
-```python
-bounds = read_osm.read_bounds(INFILE)
-```
-
-However, it may be useful to test the import for multiple (smaller) areas before doing it for the whole map. 
-Therefore, specify the coordinates of your map bound.
-After that, you can test any subarea inside your map bounds, and the subarea is built at the right location on the map.
-
+The coordinates can be modified here:
 ```python
 bounds = {
     "minlat": 47.6833, "minlon": 8.5969,
@@ -93,15 +71,58 @@ bounds = {
 }
 ```
 
+
+# Method 2: Use Exe (Windows)
+If you are Windows user and don't want to install Python, you can use the exe application.
+
+Find the current version in [Releases](https://github.com/Vacuum-Tube/OSM-TPF2-Importer/releases).
+Download and extract the Zip file.
+Put your exported OSM file in the same folder.
+
+Run `main.exe` in the command line with specified arguments.
+You can use the attached `run.bat` file as template.
+
+The input arguments are:
+- **Arg 1**: Input file (.osm)
+- **Arg 2**: Output file (.lua)
+- **Arg 3**: Size of TPF2 map (comma-separated x and y length)
+- **Arg 4**: Coordinates (comma-separated minlat, minlon, maxlat, maxlon)
+
+An example command looks like this:
+```
+main.exe map.osm osmdata.lua 16384,16384 47.6833,8.5969,47.7103,8.6698
+```
+
+
+# Run
+
 Now execute main.py or main.exe. 
+This can take a few minutes.
+
+There is no visible sign of progress in the command window because all log messages are written to the logfile `log.txt`.
+If you clicked on the .bat wait patiently until the window disappears!
+
 If it runs successfully, the output file `osmdata.lua` is created. 
-This file is needed for the next step.
+This file is needed for the next step to build the data ingame.
 
-If the file is not created because of an error, send me the log file and your osm file.
+If the file is not created, have a look into `log.txt` for any error messages.
+Maybe the command is not correct.
+If you can't resolve the error, send me your log file and .osm file.
 
-The log is saved to the file `log.txt`. 
-It contains information about the OSM data, locations, and the number of resulting single street and track edges for TPF2, broken down by types (at the end). 
-This will be useful later to estimate execution time of the constructing process and whether to include all street/path types or not due to performance reasons.
+The log contains general information about the OSM data, e.g. town/city names.
+At the end of the file, you find the resulting number of single street and track edges to be built in TPF2, broken down by types. 
+This will be useful later to estimate execution time of the constructing process and whether to exclude some street/path types due to performance reasons.
+
+The log also contains information about the size of the area that can be used for verification.
+The real distance between the bound coordinates in meters is printed in the log. 
+```
+Distance of bounds: lon=24747-24634m , lat=24560m 
+```
+Note, that the longitudal length differs from the south to the north. 
+This is the moment, when you realize *that the earth is not flat...* and start thinking about projections (more info in details).
+Compare this to your actual map length. 
+They don't have to match exactly (which is not possible anyway), but should be about correct. 
+If you don't plan a 1:1 reconstruction but a scaled one, you need to account for the respective factor here.
 
 
 # Details

@@ -46,7 +46,12 @@ bulldoze.delEdges()  -- this removes all edges!
 ```
 
 It can happen that the game crashes with `Assertion 'it != m_compType2index.end()' failed.`
-In this case, first create a town anywhere and delete it.
+In this case, simply create a town anywhere and delete it.
+
+It could also happen that the game crashes here with `Assertion 'proposalData.errorState.Empty() || g_allowApplyWithErrorsHack' failed.`
+This means that due to an obstacle, a town can not be created by the API, unfortunately leading to a crash.
+If your map is empty, the only obstacle is water.
+Check any towns that are near water and remove them from `osmdata.lua`.
 
 
 ## __2. Forests__

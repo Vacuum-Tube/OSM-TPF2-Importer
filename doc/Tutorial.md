@@ -26,21 +26,22 @@ However, when using OSM Importer I recommend only 1:1 scale.
 The reason is that everything has to be scaled down exactly and there is no room for improvised adjustments to leave certain parts out.
 Scaling down train stations, curve radius, and urban streets will be a hassle already with 1:2.
 
-A major challenge is the accurate alignment of heightmap, overlay, and OSM-imported things by using the exact same map bounds / coordinates.
+A major challenge is the accurate alignment of heightmap, overlay, and OSM-imported things **by using the exact same map bounds (coordinates).**
 This is important because the streets/tracks built by OSM importer should match with the overlay.
-Ideally, you define the coordinates from the beginning.
+
+Ideally, you **define the coordinates from the beginning**.
 Write them down.
 
 <p align="middle"><img src="pics/skydark_screenshot_osm.jpg" width="90%" /></p>
 
 You could use https://heightmap.skydark.pl/ for planning your area.
-It offers also OSM export which contains the bounds coordinates.
+It also offers OSM export which contains the bounds coordinates.
 Be aware of the map size, as it should be the same as your TPF2 map, otherwise your scaling is not 1:1.
 Also note, that the *exact* map length is always [a multiple of 256](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/).
 Alternatively, you can use the OSM website (see Step 3) for planning, but then need to calculate the sizes elsewhere.
 Zoom into the corners and make screenshots (this will be useful to align the overlay).
 
-In case you already have a (empty) map with heightmap/overlay, you need to find out the coordinates of that.
+In case you already have an (empty) map with heightmap or overlay, but don't know the coordinates of that, you need to find them out.
 You can show the location of coordinates in OSM by modifying a URL (as in [open_in_osm.py](/python/open_in_osm.py)).
 You can also use the object query in OSM to reveal coordinates in the URL.
 
