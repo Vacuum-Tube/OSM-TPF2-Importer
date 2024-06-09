@@ -399,7 +399,11 @@ st.types = {  -- tag "highway"
 				r = st.fallback_type
 			end
 		elseif street.tracktype then
-			r = assert(st.types._track_grade[street.tracktype], "street tracktype: "..street.tracktype)
+			r = st.types._track_grade[street.tracktype]
+			if not r then
+				print("ERROR: tracktype NOT DEFINED: "..street.tracktype)
+				r = st.fallback_type
+			end
 		else
 			r = easybr_rtp.fus_schottererde
 		end
