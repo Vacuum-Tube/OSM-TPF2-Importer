@@ -1,4 +1,4 @@
-certifi==2023.11.17
+certifi==2024.7.4
 geographiclib==2.0
 geopy==2.3.0
 luadata==1.0.5
