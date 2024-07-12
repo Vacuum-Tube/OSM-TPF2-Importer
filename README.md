@@ -4,7 +4,7 @@
 
 This is a tool for the simulation game [Transport Fever 2](https://www.transportfever2.com/) (TPF2) for the automated reconstruction of real world places using OpenStreetMap data.
 
-Few players have dared to start a "Replication" project (virtual reconstruction of real environments) in TPF2 and maybe you already thought of recreating your home town.
+Few players have dared to start a "Rebuilding project" (virtual reconstruction of real environments) in TPF2 and maybe you already thought of recreating your home town.
 However, often motivation runs out after a while, simply because of the sheer number of tracks, roads, buildings, vegetation, etc to rebuild, quickly becoming monotonous.
 
 OpenStreetMap (OSM) provides detailed, worldwide, and free map data, including streets, railways, buildings, vegetation and much more.
@@ -25,11 +25,10 @@ Demonstration Video: https://youtu.be/V_L-CaPWk1Y
 [![OSM Importer Demonstration Video](https://img.youtube.com/vi/V_L-CaPWk1Y/maxresdefault.jpg)](https://youtu.be/V_L-CaPWk1Y)
 
 
-## Basics for Map creation
+## Basics for Map Creation
 
 Before using this tool, you should be familiar with the basics of TPF2 and map creation in general.
-Basic information, considerations, and requirements for "Replication" projects can be found in my [article in the forum](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2/) (german).
-Steam guide (english) will follow soon.
+Basic information, considerations, and requirements for "Rebuilding projects" can be found in my [steam guide](https://steamcommunity.com/sharedfiles/filedetails/?id=3283539648) or this [article in the tfnet forum (german)](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2/).
 
 Before applying OSM-Importer, you need to define your area of interest, create an ingame overlay, and get a heightmap (optional for flat regions).
 
@@ -101,17 +100,17 @@ Moreover, edges are optimized and tangent vectors are calculated for appropriate
 
 On the TPF2 side, there is a script mod to read the generated Lua file and conduct the import in TPF2.
 The whole project folder is basically a mod that needs to be activated.
-In the game, the console is used to start the automated construction process.
-The TPF2 modding API is used to build the streets, tracks, single models and more. 
+In the game, the console is used to access the script functions and start the construction process.
+The TPF2 modding API is used to automagically build the streets, tracks, forests and more. 
 
 
 ## Documentation/Tutorial
 [Here is a full tutorial](/doc/Tutorial.md) on how to use the tool.
 It explains all steps, how to obtain OSM data, prepare the map, how to use the toolchain, and the postprocessing.
 
-The two main tools are documented seperately:
-- [OSM-TPF Converter](/python) (Python)
-- [OSM Builder](/res/scripts/osm_importer) (Lua/Mod)
+The two parts of the tool are documented seperately:
+- [OSM-TPF Converter (Python)](/python)
+- [OSM Builder (Lua/Mod)](/res/scripts/osm_importer)
 
 
 ## Mods
@@ -125,43 +124,34 @@ Find the [required mods here](/doc/Mods.md).
 
 ## Limitations
 - Not everything can be automated.
-Replication projects still require significant manual preperation.
-Also, postprocessing after the import is needed to clean up and optimize the result.
+Rebuilding projects still require significant manual preperation and postprocessing after the import to optimize the result.
 
-- The accuracy of the result depends on the accuracy/details of the OSM data. 
-Mapping accuracy differs locally and worldwide. 
-Maps don't have the same accuracy as games, which can be seen especially in railway curves.
+- The result depends on the accuracy and provided details in OSM tags, which differs locally and worldwide.
+The processing algorithms of this tool can't create perfect geometries if curves are mapped too inprecisely.
+If details on street or track properties (e.g. speed) are missing, the result in the game might be inappropriate.
+But as OSM evolves over time, results will improve in future!
 
 - Often, not all streets/tracks can be built successfully, especially when there are many short segments within a small area, like complex intersections. 
 These have to be built in TPF2 in another way anway.
 
 - The process of importing streets and tracks can take a lot of time (several hours, depending on the map size and density).
-This is because the single edges need to be built subsequently and the game has a tick speed of 0.2 seconds.
+This is because single edges have to be built subsequently.
 
 
 ## Performance Impacts
-Performance is a thing that needs to be carefully considered in TPF2.
-Bringing a huge number of elements into the game at once presents a new type of impact that barely anyone has experienced yet.
-Also I am just at the beginning of a replication at large scale, so stay tuned for new findings about this topic.
+General performance discussion for reconstruction projects is given in the reconstruction guide ([EN](https://steamcommunity.com/sharedfiles/filedetails/?id=3283539648) | [DE](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2)).
+With the OSM Import in particular, a huge number of elements is brought into the game at once, presenting a new type of impact that barely anyone has experienced yet.
 
-In TPF2, performance can be [divided into 2 almost independent kinds](https://www.transportfever.net/lexicon/index.php?entry/309-fps-display-measurement-analysis/).
-The graphic performance is represented by FPS and is influenced mainly by the graphics card and the number of models to visualize. 
-Thus, rebuilding dense cities with lots of mods can quickly get critical.
-The script/engine performance refers to the simulation part, which is dependent on the number of agents/persons and vehicles to simulate.
-If the simulation is not fast enough, this leads to stutters of the movements.
-It turned out that car connection search on the street graph is a crucial factor.
-Therefore, I strongly recommend to **not** use AI towns, but rather place person magnets so that houses are connected by foot only and people use public transport.
-
-RAM turned out to be a critical factor because of the extreme number of track/street segments (edges) added by the OSM import.
-As an example, my meglomaniac Frankfurt map [includes 500 000 edges, resulting in 53 GB RAM!](https://www.transportfever.net/thread/20034-osm-importer-automatisierter-nachbau-mit-openstreetmap/)
-In usual TPF2 games, even 50 000 would nearly be reached only in big savegames.
+RAM turned out to be a critical factor, especially for large maps containing urban areas because of the extreme number of track/street segments (edges).
+As an example, my meglomaniac Frankfurt map [includes 300 000 edges, resulting in 40 GB RAM!](https://steamcommunity.com/sharedfiles/filedetails/?id=3273019567)
+In usual TPF2 games, even 30 000 edges would be reached only in big savegames.
 If RAM usage is higher than the physical memory, the page file is heavily used, leading to stutters, especially when moving the map.
-Also, the savegame size becomes very large and the saving times get higher.
+Also, the savegame size becomes very large and saving times get higher.
 
 Therefore, consider this impact and make tests early on to estimate if your savegame will still run smoothly on your hardware after the import!
 If not, you either need to buy more RAM, choose a smaller map size, or reduce the number of edges by excluding certain types (more info in the tutorial).
-[In the guide](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2/), I tried to estimate the required RAM (column 'high').
-Furthermore, the infrastructure density has a major influence on this, i.e. rural areas are less affected by this issue compared to urban areas.
+In the reconstruction guide, I tried to estimate the required RAM (column 'high').
+The infrastructure density has a major influence, i.e. rural areas are less affected by this issue compared to urban areas.
 
 
 ## More Info
@@ -173,8 +163,9 @@ During the development, other mods emerged.
 Most notably, [Build with Collision](https://steamcommunity.com/sharedfiles/filedetails/?id=2660921894) was actually a spontaneous idea coming from my "research" with the street proposal API.
 
 
-## Issues & Contact
+## Questions, Issues & Contact
 For issues, questions, and feedback, please use the Issues Tab or Discussions in Github, the [forum thread](https://www.transportfever.net/thread/20034-osm-importer-automatisierter-nachbau-mit-openstreetmap/) or [Steam](https://steamcommunity.com/app/1066780/discussions/0/4344355442314070256/). 
+I am open to feedback and staying tuned to see your upcoming reconstruction projects!
 
 For other requests: vacuumtubetrain@gmail.com 
 (but I cannot provide support for TPF2 basics, please use Steam or [transportfever.net](https://www.transportfever.net/) for that)

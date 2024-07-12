@@ -1,8 +1,7 @@
 # TPF2-OSM Importer - Tutorial
 
 This is a full tutorial on how to use OSM-Importer to get OSM data into TPF2.
-As it covers only the use of this tool, general knowledge about "Replication" projects including some map preperations is expected and can be found in my [article in the forum](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2/) (german).
-Steam article (english) will follow.
+As it covers only the use of this tool, general knowledge about rebuilding real-world areas including some map preperations is expected and can be found in my reconstruction article ([EN](https://steamcommunity.com/sharedfiles/filedetails/?id=3283539648) | [DE](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2))
 
 Let's have a look on the toolchain first.
 After you decided which realworld area to rebuild and obtained according OSM data, this data is run through a "Converter", realized in Python.
@@ -12,9 +11,9 @@ The script will then read the data and build it automagically using the TPF2 mod
 
 ![toolchain](/doc/toolchain.png)
 
-However, some preperation of the map and terrain is required before the import to ensure the things are placed at the right height.
+However, some preperation of the map and terrain is required before the import to ensure the things are placed at the right position.
 The result of the automated import will not be perfect of course.
-After doing the postprocessing to fix some things manually, you can continue with the replication project with many other things not covered by this tool: train stations, lines, buildings, fields...
+After doing the postprocessing to fix some things manually, you can continue with the reconstruction with many other things not covered by this tool: train stations, lines, buildings, fields...
 
 
 # 1. Define Map Size and Location
@@ -26,9 +25,8 @@ However, when using OSM Importer I recommend only 1:1 scale.
 The reason is that everything has to be scaled down exactly and there is no room for improvised adjustments to leave certain parts out.
 Scaling down train stations, curve radius, and urban streets will be a hassle already with 1:2.
 
-A major challenge is the accurate alignment of heightmap, overlay, and OSM-imported things **by using the exact same map bounds (coordinates).**
-This is important because the streets/tracks built by OSM importer should match with the overlay.
-
+A major challenge is the accurate alignment of heightmap, overlay, and OSM-imported things **by using the same map bounds (coordinates).**
+This is important because the streets/tracks built by OSM importer should match exactly with the overlay.
 Ideally, you **define the coordinates from the beginning**.
 Write them down.
 
@@ -36,10 +34,12 @@ Write them down.
 
 You could use https://heightmap.skydark.pl/ for planning your area.
 It also offers OSM export which contains the bounds coordinates.
-Be aware of the map size, as it should be the same as your TPF2 map, otherwise your scaling is not 1:1.
+Be aware of the map size, since it should be the same as your TPF2 map, otherwise your scaling is not 1:1.
 Also note, that the *exact* map length is always [a multiple of 256](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/).
-Alternatively, you can use the OSM website (see Step 3) for planning, but then need to calculate the sizes elsewhere.
+Alternatively, you can use the OSM website (see Step 3) for planning, but then you need to calculate the sizes elsewhere.
 Zoom into the corners and make screenshots (this will be useful to align the overlay).
+
+To ensure the intended map length in meters for given coordinates, the Converter (step 5) can be helpful as it prints the distances of the bounds in the log.
 
 In case you already have an (empty) map with heightmap or overlay, but don't know the coordinates of that, you need to find them out.
 You can show the location of coordinates in OSM by modifying a URL (as in [open_in_osm.py](/python/open_in_osm.py)).
@@ -49,7 +49,7 @@ You can also use the object query in OSM to reveal coordinates in the URL.
 # 2. Prepare Overlay and Heightmap
 You will need an ingame overlay, which is ideally OSM-based as well.
 The overlay will be extremely useful to verify the import and reconstruct parts if objects are removed.
-It is also needed to continue the replication project with other OSM information.
+It is also helpful to continue the reconstruction project later.
 
 <p align="middle"><img src="pics/osm_overlay.jpg" width="70%" /></p>
 
@@ -57,7 +57,7 @@ The use of a heightmap is optional, but recommended for hilly regions.
 The OSM import can also be done on a flat map, which makes things easier.
 However, if you want to represent some elevation, terrain adjustments have to happen _before_ the import.
 
-Information on how to create a heighmap and overlay can be found in the [Replication article](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2/).
+Information on how to create a heighmap and overlay can be found in the reconstruction article ([EN](https://steamcommunity.com/sharedfiles/filedetails/?id=3283539648) | [DE](https://www.transportfever.net/lexicon/entry/398-real-nachbau-in-tpf-2)).
 
 **Be very precise** when adjusting the data to your map bounds and use the defined coordinates!
 A deviation of just a few meters between the overlay and the resulting objects will be annoying.
@@ -84,7 +84,7 @@ This easily ensures that the coordinate bounds match.
 ## Geofabrik
 [Geofabrik](https://download.geofabrik.de/) hosts predefined OSM files for certain countries/states.
 This has the advantage that you can use data from a past point in time ([not possible via OSM Api](https://wiki.openstreetmap.org/wiki/History_API_and_Database)).
-In this case you get a pbf file that contains a bigger area than your map area, which has to be cropped before (see [here](/python/README.md#usage)).
+In this case you get a pbf file that contains a bigger area than your map area, which has to be cropped before (see [here](/python/README.md#overview)).
 
 
 # 4. Map preperation (Terrain)
@@ -320,6 +320,8 @@ Motorways with structurally separated lanes are represented as two one-way lanes
 However, if you want to use [the Autobahn Mod](https://www.transportfever.net/filebase/entry/5157-autobahnkreuz-tpf2/) anyway, use `build_autobahn = false` to avoid those lanes being built.
 After the import you can lay the dedicated Autobahn directly. 
 
+## Train Stations
+The [Freestyle train station](https://steamcommunity.com/workshop/filedetails/?id=2363493916) can build stations along existing tracks and is therefore perfectly suited to apply at the generated tracks.
 
 
 # 8. Use Overpass to add OSM data by hand
