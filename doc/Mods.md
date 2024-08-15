@@ -40,7 +40,8 @@ You can skip "Berlin Stadtbahn Viaduct Construction" if you are sure that [your 
 - TFMR2.0 Bridge (Transport Fever Modular Road) https://steamcommunity.com/sharedfiles/filedetails/?id=2187434173 
 - Freestyle train station https://steamcommunity.com/sharedfiles/filedetails/?id=2363493916
 - Bridge Type-1 https://steamcommunity.com/sharedfiles/filedetails/?id=1939805466
-- Gitterträger-Fachwerkbrücke https://www.transportfever.net/filebase/entry/5425-gittertr%C3%A4ger-fachwerkbr%C3%BCcke/
+- Vienna Fever: Bridge and Retaining Wall https://steamcommunity.com/sharedfiles/filedetails/?id=2060132685
+- Gitterträger-Fachwerkbrücke [until v1.3] https://www.transportfever.net/filebase/entry/5425-gittertr%C3%A4ger-fachwerkbr%C3%BCcke/
 - Autobahnkreuz TpF2 https://www.transportfever.net/filebase/entry/5157-autobahnkreuz-tpf2/
 
 ## Signals ([definition](/res/scripts/osm_importer/types_signal.lua))

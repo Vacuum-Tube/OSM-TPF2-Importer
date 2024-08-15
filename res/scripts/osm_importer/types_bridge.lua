@@ -29,6 +29,9 @@ local greengitter = "gitterbruecke_o.lua"  -- no pillar, medium flat
 -- 2858595053 Straßen- und Schienenbaukasten
 -- local pl_cement = "plo_cement.lua" -- vanilla beton, without pillar
 
+-- 2060132685 Vienna Fever: Bridge and Retaining Wall
+local invisible = "vienna_fever_infra_leere_bruecke.lua"
+
 
 bt.streettypes = {
 	motorway = autobahn,
@@ -56,11 +59,12 @@ bt.streettypes = {
 
 function bt.getType(data)
 	if data.track then
-		if data.track.speed and data.track.speed>120 then
-			return ang_t1
-		else
-			return greengitter
-		end
+		-- if data.track.speed and data.track.speed>120 then
+			-- return ang_t1
+		-- else
+			-- return greengitter  -- overlaps for double tracks
+		-- end
+		return invisible
 	else 
 		local btype = bt.streettypes[data.street.type]
 		if not btype then
