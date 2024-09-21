@@ -62,9 +62,6 @@ You can skip "Berlin Stadtbahn Viaduct Construction" if you are sure that [your 
 ## Forest Placement Function
 - Forester (version "vt_snowball_forester_1.4_Interface") https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/
 
-## Other
-- [CommonAPI2](https://www.transportfever.net/filebase/index.php?entry/4806-commonapi2/) (only for Step1+2 of Import, could be deactivated afterwards)
-
 ## Default
 - Sandbox
 - and enable Debug Mode

@@ -14,7 +14,7 @@ The import is done in 4 steps to implement the following things:
 
 # Usage
 This mod contains script files that have to be executed with the ingame console.
-You need both the UG console and the [CommonAPI2](https://www.transportfever.net/filebase/index.php?entry/4806-commonapi2/) Console because we need access to the engine (script) thread. 
+We also need access to the engine (script) thread, which can be done either with the [CommonAPI2](https://www.transportfever.net/filebase/index.php?entry/4806-commonapi2/) Console or alternatively using the workaround described below.
 
 Put the output file `osmdata.lua` from the converter in this directory (`res/scripts/osm_importer`).
 It contains all data of things that will be constructed automatically in TPF friendly Lua format.
@@ -22,12 +22,17 @@ It contains all data of things that will be constructed automatically in TPF fri
 The file [main.lua](./main.lua) contains all commands that we need for executing the import.
 It consists of 4 main steps that are documented in the (fake) function run().
 The 4 steps need to be executed in sequence step by step using the console.
+They are also documented below:
 
 ## __0. Initialization__
 Pause the game.
 Enter  in both _UG Console_ and _Script Thread_:
 ```lua
 require "osm_importer.main"
+```
+or use this workaround for the Script Thread
+```lua
+m.scriptevent.ScriptEvent("require-osm_importer.main")
 ```
 
 ## __1. Town Labels__
@@ -36,13 +41,14 @@ The first step creates town labels for some of the OSM mapped "[places](https://
 All places of the map excerpt can be found in the converter log.
 Those being used to display are defined in [convert_data.py](/python/convert_data.py) (at "places" L130).
 
-In order to display town labels in the game, we create usual TPF2 towns, but make them empty and inactive, so they don't start to generate town buildings.
+In order to display town labels in the game, we create usual TPF2 towns, but make them empty and inactive, so they don't start generating town buildings.
 
-Execute this in _Script Thread_ (each line individually):
+Execute this in the _UG Console_ (each line individually):
 ```lua
 m.towns.createTownLabels(osmdata.towns)
-m.towns.setAllTownsDevActive(false)
-bulldoze.delEdges()  -- this removes all edges!
+m.scriptevent.ScriptEvent("setAllTownsDevActive-false")
+m.scriptevent.ScriptEvent("bulldoze.delEdges")  -- this removes ALL built streets!
+bulldoze.delAssets() -- remove trees (remains from towns)
 ```
 
 It can happen that the game crashes with `Assertion 'it != m_compType2index.end()' failed.`
@@ -50,8 +56,8 @@ In this case, simply create a town anywhere and delete it.
 
 It could also happen that the game crashes here with `Assertion 'proposalData.errorState.Empty() || g_allowApplyWithErrorsHack' failed.`
 This means that due to an obstacle, a town can not be created by the API, unfortunately leading to a crash.
-If your map is empty, the only obstacle is water.
-Check any towns that are near water and remove them from `osmdata.lua`.
+If your map is empty, the only obstacle could be water.
+Thus, check any towns that are near water and remove them from `osmdata.lua`.
 
 
 ## __2. Forests__
@@ -65,10 +71,15 @@ Execute this in _Script Thread_:
 ```lua
 m.areas.buildAreas(osmdata.areas, osmdata.nodes)
 ```
-Depending on the amount of forest, this command may take a while and freezes the game during execution.
+or with the workaround in  _UG Console_ 
+```lua
+m.scriptevent.ScriptEvent("areas.buildAreas")
+```
+Depending on the amount of forest, this command may take a while, so wait patiently.
+In the CommonAPI console it freezes the game until fully processed, with the workaround only the simulation is frozen.
 
 ## __3. Street/Track Edges__
-This steps builds all streets and tracks, sequentially one-by-one.
+This step builds all streets and tracks, sequentially one-by-one.
 This step must come after the forests, otherwise there would be trees on streets.
 There are a number of options defined in a global variable:
 ```lua
@@ -115,12 +126,12 @@ In any case, I advise to check the result visually, but also to have a look in t
 
 
 ## __4. Objects__
-Finally, some point objects that are mapped in OSM can be built.
+Finally, some point objects that are mapped in OSM can be added as individual models.
 This includes:
 - single trees
 - fountains
 - bollards
-- Litfaßsäulen
+- advertising pillars (Litfaßsäule)
 
 It has to happen after Step 3 because it changes terrain heights.
 
@@ -191,17 +202,15 @@ However, if you want to run Step 3 again, you also need to reload with the above
 
 - The 4 steps should be executed in the defined order.
 For testing, you can test them individually, as they are technically independent from each other.
-For the acutal import, I recommend to do the steps directly after each other, with no map editing in between.
-The steps do not have to happen in the same game session.
-However, Step 3 (which can take hours, even up to days) may not be interrupted. 
-Step 4 could be executed at a later point, after postprocessing.
+For the acutal import, I recommend to do the steps directly after each other in the same game session, with no map editing in between.
+Step 4 could be executed at a later point, for example after postprocessing.
 
 - A clean map is required, which means no tracks, streets, vegetations, only terrain adjustements.
 If you built already something in the specified map area before, the import might mess up things.
 Also, I do not recommend to apply the import for seperate areas after each other, since overlaps would not work perfectly and the forest polygons don't have a defined border, so they could appear twice.
 Also, we use a command to delete all streets because of the dummy towns in Step 1 (which could however be done manually).
 
-- I advise to test all of the 4 import steps **several times** first with small map excerpts before doing it with a big map.
+- I advise to first test all of the 4 import steps comprehensively with small map excerpts before doing it with a big map.
 This helps to avoid surprises and you know what result to expect. 
 Check for irregularities and if there are more than the known ones, ask me.
 
@@ -219,7 +228,7 @@ In that case send me your OSM file and stdout.
 The reason I split the tool in a Lua and Python part with an intermediate file is that doing the whole data conversion, processing, and transformation in Lua would probably be a pain in the ***.
 Python is a more flexible programming language with several available packages, which are quite useful for this project.
 Thus, most of the data processing is done there and the data is put into a simple Lua file.
-This way, the Lua/mod part is mostly dealing with reading the data and bringing it into the game via the modding interface.
+This way, the Lua/mod part is only dealing with reading the data and bringing it into the game via the modding interface.
 
 ## Forests
 Areas in OSM, such as forests, are defined as closed Ways, i.e. polygons, or more advanced as a Relation with "inner" and "outer" ways/polygons, constituting a "multi-polygon" (e.g. [48493](https://www.openstreetmap.org/relation/48493)).

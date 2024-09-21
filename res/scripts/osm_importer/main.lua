@@ -8,6 +8,7 @@ osm_importer = {
 	models=require"osm_importer.models",
 	towns=require"osm_importer.towns",
 	areas=require"osm_importer.areas",
+	scriptevent=require"osm_importer.script_event",
 	reload=require"osm_importer.package".reload,
 	-- options = {},
 }
@@ -18,18 +19,18 @@ print("Loaded osm_importer.main")
 
 --------------------------------------------------------------------------------
 -- Copy the following commands in the console step by step
--- Some commands go into the UG Console, some need to go in the CommonAPI Console (Script Thread)
+-- Some commands go into the UG Console, some need to be executed in the Script Thread. Either use CommonAPI Console for that or use the Workaround below.
 -- Pause game !
 --------------------------------------------------------------------------------
 local function run()
 	
-	require"osm_importer.main"  -- Enter in UG Console and Script Thread
+	require"osm_importer.main"  -- Enter in UG Console AND Script Thread
 	
 	-- (1) Town labels
 	m.towns.createTownLabels(osmdata.towns)
 	m.towns.setAllTownsDevActive(false)  -- disable town development  -- USE: Script thread
 	bulldoze.delEdges() -- remove (ALL) built streets  -- USE: Script thread
-	bulldoze.delAssets()
+	bulldoze.delAssets() -- remove trees
 	
 	-- (2) Areas/forests  (before streets, so they remove trees)
 	m.areas.buildAreas(osmdata.areas, osmdata.nodes)  -- USE: Script thread
@@ -60,7 +61,16 @@ local function run()
 end
 
 --------------------------------------------
-local function tipps()
+local function execute_commands_in_Script_Thread()
+	-- Workaround without CommonAPI
+	m.scriptevent.ScriptEvent("require-osm_importer.main")
+	m.scriptevent.ScriptEvent("setAllTownsDevActive-false")
+	m.scriptevent.ScriptEvent("bulldoze.delEdges")
+	m.scriptevent.ScriptEvent("areas.buildAreas")  -- wait some time for the result
+	m.scriptevent.ScriptEvent("m.reload")
+end
+--------------------------------------------
+local function Tips()
 	-- Reload Lua Files:
 	m.reload()
 	
