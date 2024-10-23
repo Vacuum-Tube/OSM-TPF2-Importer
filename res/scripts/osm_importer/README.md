@@ -124,6 +124,15 @@ Tracks are build first, then major streets, minor ones, then small paths.
 After the process has finished, the error rate of edges that could not be built is shown in the log. 
 In any case, I advise to check the result visually, but also to have a look in the stdout.txt and search for "WARNING" and "ERROR" (especially if the process did not abort because of options.crash_type_not_found=false).
 
+It could happen that there is an error message 
+`simpleproposal_seq.lua:13: Already called, reload osm_importer before use again`.
+This means that Step3 cannot be executed twice (reload first, see below).
+But due to a TPF2 bug in the console, this error could also be shown when you execute the first time, hiding the actual error.
+In this case, the workaround is to execute the command with the options table at once (copy lines from main.lua) or use:
+```lua
+asdf=1; m.simpleproposalseq.SimpleProposalSeq(osmdata, options)
+```
+
 
 ## __4. Objects__
 Finally, some point objects that are mapped in OSM can be added as individual models.
