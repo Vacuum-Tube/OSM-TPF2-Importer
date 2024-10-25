@@ -41,12 +41,11 @@ highwaytypes = [  # https://wiki.openstreetmap.org/wiki/Key:highway
     # streams
     "waterstream",
 ]
-# move types to ignoredtypes to omit them from the output data
+# move types to ignored types below to omit them from the output data
 
 ignored_highway_types = {
-    # place ignored types here:
-
     # highway types from OSM, which are not actual streets
+    # place ignored types here (will not be logged)
     "steps",
     "platform",
     "corridor",

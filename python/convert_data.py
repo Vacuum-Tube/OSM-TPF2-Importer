@@ -1,7 +1,7 @@
 from coord2metric import Coord2metric
 from osmread import Node, Way, Relation
 
-from sort_edges import ignored_highway_types
+from sort_edges import ignored_highway_types, highwaytypes
 
 
 def tointornil(str, fallback=None):
@@ -144,7 +144,13 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         tags = way.tags
         wnodes = way.nodes
 
-        isstreet = "highway" in tags and tags["highway"] not in ignored_highway_types
+        isstreet = False
+        if "highway" in tags:
+            if tags["highway"] in highwaytypes:
+                isstreet = True
+            else:
+                if tags["highway"] not in ignored_highway_types:
+                    print(f'Unknown highway type: {tags["highway"]} {id}')
         istrack = tags.get("railway") in {"rail", "construction", "disused", "miniature", "narrow_gauge", "preserved",
                                           "light_rail", "subway", "tram"}
         issubway = tags.get("railway") in {"light_rail", "subway"}

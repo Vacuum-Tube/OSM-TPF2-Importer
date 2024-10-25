@@ -109,7 +109,7 @@ function h.setAllNodesHeight(nodes,paths,edges)
 			local p0 = tools.vec3(nodes[node0].pos)
 			local p1 = tools.vec3(nodes[node1].pos)
 			local length = vec3.distance(p0,p1)
-			local edge = assert(edgedict[node0.."--"..node1])
+			local edge = assert(edgedict[node0.."--"..node1], "Not in edgedict: "..node0.."--"..node1)
 			assert(edge.node0==node0, node0)
 			assert(edge.node1==node1, node1)
 			if i>1 then
