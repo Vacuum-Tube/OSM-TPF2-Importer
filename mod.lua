@@ -3,7 +3,7 @@ function data()
 		info = {
 			name = "OSM Importer",
 			description = _("mod_desc"),
-			minorVersion = 0,
+			minorVersion = 4,
 			severityAdd = "NONE",
 			severityRemove = "NONE",
 			tags = {},
