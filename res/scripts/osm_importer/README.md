@@ -78,6 +78,17 @@ m.scriptevent.ScriptEvent("areas.buildAreas")
 Depending on the amount of forest, this command may take a while, so wait patiently.
 In the CommonAPI console it freezes the game until fully processed, with the workaround only the simulation is frozen.
 
+The forest areas can be beyond the map bounds in general.
+If you don't like that, you can remove all assets beyond the map borders by entering the following command in the console:
+```lua
+for id, asset in pairs(game.interface.getEntities({radius = 1e42}, {type = "ASSET_GROUP", includeData = true})) do
+    if asset.position and not api.engine.terrain.isValidCoordinate(api.type.Vec2f.new(asset.position[1], asset.position[2])) then
+        api.cmd.sendCommand(api.cmd.make.removeField(id))
+    end
+end
+```
+
+
 ## __3. Street/Track Edges__
 This step builds all streets and tracks, sequentially one-by-one.
 This step must come after the forests, otherwise there would be trees on streets.
