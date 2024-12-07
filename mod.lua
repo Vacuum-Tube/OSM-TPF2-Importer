@@ -6,7 +6,7 @@ function data()
 			minorVersion = 4,
 			severityAdd = "NONE",
 			severityRemove = "NONE",
-			tags = {},
+			tags = {"Script Mod","Misc"},
 			authors = {
 				{
 					name = "VacuumTube",
