@@ -60,7 +60,7 @@ You can skip "Berlin Stadtbahn Viaduct Construction" if you are sure that [your 
 - Spacky_Trees conifers https://steamcommunity.com/sharedfiles/filedetails/?id=2247194383
 
 ## Forest Placement Function
-- Forester (version "vt_snowball_forester_1.4_Interface") https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/
+- Forester (use version **"vt_snowball_forester_1.4_Interface"**) https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/
 
 ## Default
 - Sandbox

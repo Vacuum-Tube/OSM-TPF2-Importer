@@ -32,14 +32,18 @@ Write them down.
 
 <p align="middle"><img src="pics/skydark_screenshot_osm.jpg" width="90%" /></p>
 
-You could use https://heightmap.skydark.pl/ for planning your area.
-It also offers OSM export which contains the bounds coordinates.
+You could use https://heightmap.skydark.pl/ or https://terraining.ateliernonta.com/ for planning your area.
+There, you can set the map size (square only) and read the *center* coordinate.
+It also offers direct OSM export.
+This is also useful, as the OSM file contains the *bounds* coordinates (in the first lines), which we actually need.
+If you only have the center coordinate, you need to calculate the bounds with an approximation formula.
+
 Be aware of the map size, since it should be the same as your TPF2 map, otherwise your scaling is not 1:1.
+To ensure the intended map length in meters for given coordinates, the Converter (step 5) can be helpful as it prints the distances of the bounds in the log.
 Also note, that the *exact* map length is always [a multiple of 256](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/).
+
 Alternatively, you can use the OSM website (see Step 3) for planning, but then you need to calculate the sizes elsewhere.
 Zoom into the corners and make screenshots (this will be useful to align the overlay).
-
-To ensure the intended map length in meters for given coordinates, the Converter (step 5) can be helpful as it prints the distances of the bounds in the log.
 
 In case you already have an (empty) map with heightmap or overlay, but don't know the coordinates of that, you need to find them out.
 You can show the location of coordinates in OSM by modifying a URL (as in [open_in_osm.py](/python/open_in_osm.py)).
@@ -266,11 +270,17 @@ If not, the [Node Tool](https://steamcommunity.com/sharedfiles/filedetails/?id=2
 [Ramp Equalizer](https://steamcommunity.com/sharedfiles/filedetails/?id=2760877761) is an excellent solution to smoothen embankment ramps in front of bridges etc. as the terrain preperation can not ensure always the perfect heights.
 It can also be used to level out bridges.
 
-[Track/Street Modifier](https://steamcommunity.com/sharedfiles/filedetails/?id=2855421164) can be used to upgrade the track/street type, bridge type, replace embankments by bridges, or reverse direction (to switch side of poles or streetlamps).
+[Track/Street Modifier](https://steamcommunity.com/sharedfiles/filedetails/?id=2855421164) and [Move It](https://steamcommunity.com/sharedfiles/filedetails/?id=2980796229) can be used to upgrade the track/street type, bridge type, replace embankments by bridges, or reverse direction (to switch side of poles or streetlamps).
 Larger areas can be upgraded with [Global upgrade](https://steamcommunity.com/sharedfiles/filedetails/?id=2775806948).
 
 [Track/Street Deleter](https://steamcommunity.com/sharedfiles/filedetails/?id=2806021490) and [Bulldozer++](https://steamcommunity.com/sharedfiles/filedetails/?id=2857104286) can be helpful when larger parts have to be deleted.
 Bulldozer++ can remove specific street types. 
+
+## Bridges
+The default track bridge type is the invisible bridge and can be replaced by another bridge or decorated with building blocks.
+
+While the more realistic track distances of 4 to 4.5m mostly look fine, this deviation from the TPF standard track distance of 5m becomes an issue at bridges because the railing can overlap.
+This needs to be adjusted, especially with more than 2 tracks.
 
 
 ## Nodes Reduction
@@ -321,7 +331,8 @@ However, if you want to use [the Autobahn Mod](https://www.transportfever.net/fi
 After the import you can lay the dedicated Autobahn directly. 
 
 ## Train Stations
-The [Freestyle train station](https://steamcommunity.com/workshop/filedetails/?id=2363493916) can build stations along existing tracks and is therefore perfectly suited to apply at the generated tracks.
+The [Freestyle train station](https://steamcommunity.com/workshop/filedetails/?id=2363493916) can build stations along existing tracks and could therefore be used for outer platforms at generated tracks.
+However, more complex stations usually require to be built from scratch.
 
 
 # 8. Use Overpass to add OSM data by hand
