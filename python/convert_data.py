@@ -30,6 +30,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         "areas": {
             "forests": [],
             "shrubs": [],
+            "grounds": [],
         },
         "objects": [],
     }
@@ -138,7 +139,21 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         # *places["square"],
     ]
 
-    forests_added = set()  # some forests are mapped twice, as way and relation
+    poly_areas_added = set()  # some forests are mapped twice, as way and relation
+    groundtags_landuse = {"residential", "commercial", "industrial", "retail", "construction", "education",
+                          "brownfield", "quarry", "railway", "meadow", "orchard", "allotments",
+                          "farmland", "farmyard", "vineyard", "animal_keeping", "flowerbed"}
+    groundtags_natural = {"beach", "grassland", "heath", "mud", "shingle"}  # "water"
+    groundtags_surface = {"paved", "asphalt", "concrete", "concrete:plates", "paving_stones", "cobblestone", "grass",
+                          "grass_paver", "sett", "unhewn_cobblestone", "bricks", "unpaved", "compacted", "woodchips",
+                          "fine_gravel", "gravel", "rock", "pebblestone", "ground", "dirt", "earth", "mud", "sand"}
+
+    def add_polygon(way, id, area_type, **addtags):
+        if len(way.nodes) > 3:
+            dic = {"polygon": list(way.nodes)}  # tuples not work with Lua export
+            dic.update(addtags)
+            data["areas"][area_type].append(dic)
+            poly_areas_added.add(id)
 
     for id, way in ways.items():
         tags = way.tags
@@ -234,27 +249,30 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
             if data["nodes"][wnodes[-1]]["outofbounds"]:
                 data["nodes"][wnodes[-1]]["endpoint"] = True
 
-        if tags.get("landuse") == "forest" or tags.get("natural") == "wood":
-            if wnodes[0] != wnodes[-1]:
-                print(f"Way {id} not closed!")
-            else:
-                data["areas"]["forests"].append({
-                    "polygon": list(wnodes),  # tuples not work export
-                    "leaf_type": tags.get("leaf_type"),
-                })
-                forests_added.add(id)
+        # Area (closed way)
+        if wnodes[0] == wnodes[-1]:
+            if tags.get("landuse") == "forest" or tags.get("natural") == "wood":
+                add_polygon(way, id, "forests", leaf_type=tags.get("leaf_type"))
+            elif tags.get("natural") == "scrub":
+                add_polygon(way, id, "shrubs")
+            elif tags.get("landuse") in groundtags_landuse:
+                add_polygon(way, id, "grounds", surface=tags.get("landuse"))
+            elif tags.get("natural") in groundtags_natural:
+                add_polygon(way, id, "grounds", surface=tags.get("natural"))
+            elif tags.get("natural") == "water" and tags.get("water") in {"lake", "pond", "reservoir", "moat"}:
+                add_polygon(way, id, "grounds", surface="water")
+            elif tags.get("surface") in groundtags_surface and \
+                    tags.get("area:highway") != "steps" and "railway" not in tags:
+                add_polygon(way, id, "grounds", surface=tags.get("surface"))
+            elif tags.get("golf") == "bunker":
+                add_polygon(way, id, "grounds", surface="golf_bunker")
+            elif tags.get("golf") == "fairway":
+                add_polygon(way, id, "grounds", surface="golf_fairway")
+            elif tags.get("golf") == "green":
+                add_polygon(way, id, "grounds", surface="golf_green")
 
-        if tags.get("natural") == "scrub":
-            if wnodes[0] != wnodes[-1]:
-                print(f"Way {id} not closed!")
-            else:
-                data["areas"]["shrubs"].append({
-                    "polygon": list(wnodes),
-                })
-
-    def add_multipolygon(relation, area_type):
-        tags = relation.tags
-        if tags.get("type") != "multipolygon":
+    def add_multipolygon(relation, area_type, **addtags):
+        if relation.tags.get("type") != "multipolygon":
             print(f"Relation {relation.id} not Multi Polygon!")
             return
         mp = {
@@ -264,32 +282,40 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
         for member in relation.members:
             if member.type == Relation:
                 if member.member_id in relations:  # else out of map bounds
-                    rel = relations[member.member_id]
-                    add_multipolygon(rel, area_type)
+                    add_multipolygon(relations[member.member_id], area_type, **addtags)
+                    # if sub relation contains (different) tags, it is not considered
             elif member.type == Way:
                 if member.member_id in ways:  # else out of map bounds
                     way = ways[member.member_id]
-                    # if way.nodes[0] != way.nodes[-1]: # open ways seems to be allowed for MP.. hope this will produce the correct result in TPF2
-                    #     print(f"Way {way.id} not closed")
-                    #     continue
-                    if member.role == "outer" and way.id not in forests_added or member.role == "inner":
+                    if way.nodes[0] != way.nodes[-1]:  # open ways seem to be allowed for MP, this is too complex for me
+                        continue
+                    if len(way.nodes) > 3 and (
+                            member.role == "outer" and way.id not in poly_areas_added or member.role == "inner"):
                         mp[member.role].append(list(way.nodes))
                         if member.role == "outer":
-                            forests_added.add(way.id)
+                            poly_areas_added.add(way.id)
                     # else:
                     # print(f"Way {member.member_id} from Rel {relation.id} already in data.areas")
         if len(mp["outer"]) > 0:
-            data["areas"][area_type].append({
-                "multipolygon": mp,
-                "leaf_type": tags.get("leaf_type"),
-            })
+            dic = {"multipolygon": mp}
+            dic.update(addtags)
+            data["areas"][area_type].append(dic)
 
     for id, relation in relations.items():
         tags = relation.tags
         if tags.get("landuse") == "forest" or tags.get("natural") == "wood":
-            add_multipolygon(relation, "forests")
-        if tags.get("natural") == "scrub":
+            add_multipolygon(relation, "forests", leaf_type=tags.get("leaf_type"))
+        elif tags.get("natural") == "scrub":
             add_multipolygon(relation, "shrubs")
+        elif tags.get("landuse") in groundtags_landuse:
+            add_multipolygon(relation, "grounds", surface=tags.get("landuse"))
+        elif tags.get("natural") in groundtags_natural:
+            add_multipolygon(relation, "grounds", surface=tags.get("natural"))
+        elif tags.get("natural") == "water" and tags.get("water") in {"lake", "pond", "reservoir", "moat"}:
+            add_multipolygon(relation, "grounds", surface="water")
+        elif tags.get("surface") in groundtags_surface and \
+                tags.get("area:highway") != "steps" and "railway" not in tags:
+            add_multipolygon(relation, "grounds", surface=tags.get("surface"), leisure=tags.get("leisure"))
 
     return data
 

@@ -1,6 +1,9 @@
-local forester = require "snowball/forester/forester"
-local Polygon = require "snowball/common/polygon_1"
-local MultiPolygon = require "snowball/common/multipolygon_1"
+local success, Polygon = pcall(require, "snowball/common/polygon_1")
+local success, MultiPolygon = pcall(require, "snowball/common/multipolygon_1")
+local success, forester = pcall(require, "snowball/forester/forester")
+if not success then
+	print("WARNING: Could not load snowball/forester/forester (Is Forester mod activated?)")
+end
 
 local f = {}
 

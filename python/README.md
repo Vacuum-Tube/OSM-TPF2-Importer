@@ -17,7 +17,7 @@ Find out the size of your TPF2 map, i.e. horizontal map lengths in meters.
 Find the **exact** values [here](https://www.transportfever.net/lexicon/index.php?entry/297-kartengr%C3%B6%C3%9Fen-in-tpf-2/) (unfortunately the sizes in the [wiki](https://www.transportfever2.com/wiki/doku.php?id=gamemanual:mapsizes) are approximated) or with [Advanced Statistics](https://steamcommunity.com/sharedfiles/filedetails/?id=2454731512).
 Also, you need to be aware of the coordinates representing the bounds of your map (see Tutorial).
 You should have them already defined, as the same coordinates should be used for the heightmap, overlay, and the OSM file.
-Nevertheless, the converter reads the bounds from the OSM file and prints them in the log.
+Nevertheless, the converter reads the bounds from the OSM file and prints them in the log, which can be useful for debugging.
 
 It is highly recommended to test the import for several small sub-areas (within your map bounds) before doing the import for the whole map.
 The command doesn't need to be adjusted for this - simply export an area from OSM and convert it.

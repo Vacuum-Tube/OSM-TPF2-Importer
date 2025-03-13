@@ -5,13 +5,13 @@
 This is a tool for the simulation game [Transport Fever 2](https://www.transportfever2.com/) (TPF2) for the automated reconstruction of real world places using OpenStreetMap data.
 
 Few players have dared to start a "Rebuilding project" (virtual reconstruction of real environments) in TPF2 and maybe you already thought of recreating your home town.
-However, often motivation runs out after a while, simply because of the sheer number of tracks, roads, buildings, vegetation, etc to rebuild, quickly becoming monotonous.
+However, often motivation runs out after a while, simply because of the sheer number of tracks, roads, buildings, etc to rebuild, quickly becoming monotonous.
 
-OpenStreetMap (OSM) provides detailed, worldwide, and free map data, including streets, railways, buildings, vegetation and much more.
+OpenStreetMap (OSM) provides detailed, worldwide, free map data, containing streets, railways, buildings, land use, vegetation and much more.
 Therefore, this tool aims at using this data to bring it into TPF2 in an automated way.
-Currently, tracks, streets, forests, town labels, and some point objects can be imported.
-This tool can be used as a starting point to accelerate the replication of a real world area.
-Having the basic infrastructure and vegetation already in the game might help to keep the motivation on continuing with the reconstruction project.
+Currently, tracks, streets, forests, ground surfaces, town labels, and some point objects can be imported.
+This tool can be used as a starting point to accelerate the replication of a real world area in TPF2.
+Having the basic structures, like infrastructure and vegetation quickly on the map might help to keep the motivation on continuing with the reconstruction project.
 
 **Despite the automation, this is no "one-click" tool!**
 You need to have basic TPF2 knowlegde and a bit of LUA experience. 
@@ -70,19 +70,20 @@ The following information from OSM elements is used and extracted during the aut
     - signals
 - Bridges
 - Rivers/Streams
-- Forests
+- Forests/Shrubs
     - leaf type
+- Ground Surface Areas
+    - e.g. fields, pavement, land use
 - Towns/Quarters location (names are displayed as fake town labels)
 - Point objects
     - fountains
     - single trees
     - bollards
-    - Litfaßsäulen
+    - advertising pillars
 
 Not all data can be used for automation.
 For example, stations are mapped in detail in OSM, but have to be manually built in TPF2.
 Building contours are extensively mapped, but there is no simple way to create appropriate automation for this.
-The OSM landuse data cannot be used due to a missing interface in TPF2 to draw ground textures.
 
 
 ## Toolchain

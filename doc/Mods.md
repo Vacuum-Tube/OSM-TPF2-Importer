@@ -55,16 +55,23 @@ You can skip "Berlin Stadtbahn Viaduct Construction" if you are sure that [your 
 ## Objects ([definition](/res/scripts/osm_importer/models.lua))
 - Connum's German Traffic Assets https://steamcommunity.com/sharedfiles/filedetails/?id=1963592311
 - Litfaßsäulen (sabon_litfass_era_c_1) https://www.transportfever.net/filebase/entry/6218-litfa%C3%9Fs%C3%A4ulen-f%C3%BCr-%C3%A4ra-b-und-c/
+- As in OSM single trees are sometimes mapped near streets, I recommend [Hide Street Trees](https://www.transportfever.net/filebase/entry/7677-hide-street-trees/) 
 
-## Tree models ([definition](/res/scripts/osm_importer/forester.lua))
+## Forester / Tree models ([definition](/res/scripts/osm_importer/forester.lua))
+- Forester (use version ***"vt_snowball_forester_1.4_Interface"*** !) https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/
 - Spacky_Trees conifers https://steamcommunity.com/sharedfiles/filedetails/?id=2247194383
 
-## Forest Placement Function
-- Forester (use version **"vt_snowball_forester_1.4_Interface"**) https://www.transportfever.net/filebase/entry/4856-f%C3%B6rster/
+## Paver / Ground Textures ([definition](/res/scripts/osm_importer/paver.lua))
+- Paver https://www.transportfever.net/filebase/entry/7713-paver-pflasterer/
+- Ingo's textures - pavement https://steamcommunity.com/workshop/filedetails/?id=2763516913
+- Ingo's Vegetation Extended https://steamcommunity.com/sharedfiles/filedetails/?id=3432184100
+- Bodentexturen 1.0 https://www.transportfever.net/filebase/entry/5852-bodentexturen-1-0-sch%C3%B6nbau-pinseltool/
+- Bodentexturen 4.0 https://www.transportfever.net/filebase/entry/6250-bodentexturen-4-0-sch%C3%B6nbau-pinseltool/
+- Natural Environment Professional 2 https://www.transportfever.net/filebase/entry/5942-natural-environment-professional-2/
 
 ## Default
 - Sandbox
-- and enable Debug Mode
+- enable Debug Mode
 
 ## Additional useful mods for Replication projects that should be activated BEFORE the osm import
 

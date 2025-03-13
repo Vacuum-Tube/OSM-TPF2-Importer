@@ -32,8 +32,9 @@ local function run()
 	bulldoze.delEdges() -- remove (ALL) built streets  -- USE: Script thread
 	bulldoze.delAssets() -- remove trees
 	
-	-- (2) Areas/forests  (before streets, so they remove trees)
+	-- (2) Areas: forests/shrubs + ground surfaces  (before streets, so they remove trees)
 	m.areas.buildAreas(osmdata.areas, osmdata.nodes)  -- USE: Script thread
+	-- m.areas.paveGroundSurfaces(osmdata.areas.grounds, osmdata.nodes, {skipMultiPolygons=false})  -- only Paver surfaces when forests already on the map
 	
 	-- (3) Build edges (Streets/Tracks)
 	options = {
