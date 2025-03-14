@@ -165,7 +165,8 @@ Most notably, [Build with Collision](https://steamcommunity.com/sharedfiles/file
 
 
 ## Questions, Issues & Contact
-For issues, questions, and feedback, please use the Issues Tab or Discussions in Github, the [forum thread](https://www.transportfever.net/thread/20034-osm-importer-automatisierter-nachbau-mit-openstreetmap/) or [Steam](https://steamcommunity.com/app/1066780/discussions/0/4344355442314070256/). 
+For issues, questions, and feedback, please use the Issues Tab or Discussions in Github, the [forum thread](https://www.transportfever.net/thread/20034-osm-importer-automatisierter-nachbau-mit-openstreetmap/) or [Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=3379943638) [![Steam](https://img.shields.io/steam/downloads/3379943638.svg?label=Steam&logo=steam)](https://steamcommunity.com/sharedfiles/filedetails/?id=3379943638). 
+
 I am open to feedback and staying tuned to see your upcoming reconstruction projects!
 
 For other requests: vacuumtubetrain@gmail.com 
