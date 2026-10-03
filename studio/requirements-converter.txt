@@ -1,0 +1,12 @@
+geopy>=2.3
+luadata>=1.0
+lxml>=4.9
+networkx>=3.0
+pyproj>=3.4
+utm>=0.7
+scipy>=1.11
+numpy>=1.26
+tqdm>=4.64
+# optional; converter does not import these at runtime in all paths
+# lupa
+# osmread

@@ -5,14 +5,39 @@ local t = require"osm_importer.tools"
 
 local m = {}
 
+m.candidates = {
+	tree = { "tree/shingle_oak.mdl" },
+	fountain = { "asset/ground/fountain_1.mdl" },
+	bollard = {
+		"asset/ground/bollard.mdl",
+		"asset/industry/industry_barrier.mdl",
+		"street/street_barrier.mdl",
+		"asset/industry/industry_lamp_old.mdl",
+	},
+	litfass = {
+		"asset/ground/advertising_column.mdl",
+		"asset/industry/industry_advertising_column.mdl",
+		"asset/ground/column.mdl",
+		"asset/industry/industry_chimney_small.mdl",
+	},
+}
+
 m.models = {
 	tree = "tree/shingle_oak.mdl",
 	fountain = "asset/ground/fountain_1.mdl",
-	bollard = "asset/connum_poller_gehweg_rund_1.mdl",  -- 1963592311 Connum's German Traffic Assets
-	litfass = "asset/sab_LitV2_3.mdl",  -- sabon_litfass_era_c_1
 }
 
 m.postRunFnScript = function()
+	for typ, list in pairs(m.candidates) do
+		if not m.models[typ] then
+			for _, mdl in ipairs(list) do
+				if api.res.modelRep.find(mdl)>=0 then
+					m.models[typ] = mdl
+					break
+				end
+			end
+		end
+	end
 	for model,mdlfile in pairs(m.models) do
 		local con = api.type.ConstructionDesc.new()
 		con.type = api.type.enum.ConstructionType.ASSET_DEFAULT
@@ -37,59 +62,91 @@ m.updateFnScript = function(constrParams,scriptParams)
 		transf = constructionutil.rotateTransf(constrParams, transf.scaleRotZYXTransl(
 			vec3.new(1, 1, 1),
 			vec3.new(math.rad(0), math.atan(0/1000), 0),
-			vec3.new(0, 0, 0) 
+			vec3.new(0, 0, 0)
 		))
 	} }
-	result.terrainAlignmentLists = { {  -- otherwise BoundingBox is used
+	result.terrainAlignmentLists = { {
 		type = "EQUAL",
 		faces = {},
 	} }
-	-- result.groundFaces = { {  -- asset clickable
-		-- face = { { 0, 0 }, { 0, 0.01 }, { 0.01, 0 } },
-		-- modes = { { type = "FILL", key = "none.lua" } },
-	-- } }
 	return result
 end
 
 function m.buildObjects(objects)
 	m.modelrestest()
-	print("Build Objects", #objects)
+	objects = objects or {}
+	local n = 0
+	for _ in pairs(objects) do
+		n = n + 1
+	end
+	print("Build Objects", n)
 	local built = {}
-	for i,data in pairs(objects) do
-		assert(m.models[data.type], "No mdl for type: "..data.type)
-		m.buildModel(data.pos, data.type)
-		built[data.type] = (built[data.type] or 0) + 1
+	local skipped = { model = {}, oob = 0, con = 0, fail = 0 }
+	for _, data in pairs(objects) do
+		if type(data) ~= "table" or not data.pos then
+			skipped.fail = skipped.fail + 1
+		elseif not m.models[data.type] then
+			skipped.model[data.type] = (skipped.model[data.type] or 0) + 1
+		elseif not t.isValidCoordinate(data.pos[1], data.pos[2]) then
+			skipped.oob = skipped.oob + 1
+		else
+			local ok = m.buildModel(data.pos, data.type)
+			if ok then
+				built[data.type] = (built[data.type] or 0) + 1
+			else
+				skipped.con = skipped.con + 1
+			end
+		end
 	end
 	print("Built: "..toString(built))
+	if next(skipped.model) or skipped.oob > 0 or skipped.con > 0 or skipped.fail > 0 then
+		print("Skipped objects: "..toString(skipped))
+	end
 end
 
 function m.buildModel(pos, model)
-	m.buildCon(pos, "osm_importer/models/"..model)
+	return m.buildCon(pos, "osm_importer/models/"..model)
 end
 
 function m.buildCon(pos, con)
-	assert(api.res.constructionRep.find(con)>=0, "con not found: "..con)
+	if type(con) ~= "string" or api.res.constructionRep.find(con) < 0 then
+		print("Skip object, construction missing: "..tostring(con))
+		return false
+	end
 	local c = api.type.SimpleProposal.ConstructionEntity.new()
 	c.fileName = con
-	-- c.playerEntity=api.engine.util.getPlayer()
 	c.params = {
 		seed=0,
 		paramX = 0,
 		paramY = 0,
 	}
-	local transf = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos[1], pos[2], t.getTerrainZ(pos[1], pos[2]), 1 }
+	local z = t.safeTerrainZ(pos[1], pos[2], 0)
+	local transf = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, pos[1], pos[2], z, 1 }
 	for i = 1, 16 do
 		c.transf[i] = transf[i]
 	end
 	local p = api.type.SimpleProposal.new()
 	p.constructionsToAdd[1] = c
-	api.cmd.sendCommand(api.cmd.make.buildProposal(p, context, ignoreErrors~=false))
+	local ok = pcall(function()
+		api.cmd.sendCommand(api.cmd.make.buildProposal(p, nil, true))
+	end)
+	return ok
 end
 
 function m.modelrestest()
-	for i, mdl in pairs(m.models) do
-		if api.res.modelRep.find(mdl)<0 then
-			error("Model not found: '"..mdl.."' (Mod missing?)")
+	for typ, list in pairs(m.candidates) do
+		local found
+		for _, mdl in ipairs(list) do
+			if api.res.modelRep.find(mdl)>=0 then
+				found = mdl
+				break
+			end
+		end
+		if found then
+			m.models[typ] = found
+		else
+			print("WARNING Model not found, skip objects of type '"..typ.."'")
+			m.models[typ] = nil
 		end
 	end
 end

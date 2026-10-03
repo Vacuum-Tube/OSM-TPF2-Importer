@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Legacy Mod Converter · Transport Fever Studio</title>
+  <link rel="stylesheet" href="start.css" />
+  <link rel="stylesheet" href="tf3_converter.css" />
+</head>
+<body>
+  <main class="converter">
+    <header class="topbar">
+      <button type="button" class="back" id="btnTools" aria-label="Switch to Transport Fever 2 tools">← Switch to TPF2 Studio</button>
+      <span class="number">TRANSPORT FEVER 3</span>
+    </header>
+    <h1>Legacy Mod <em>Converter</em></h1>
+    <p class="intro">Read metadata from a legacy Transport Fever mod and produce the TF3 metadata files.</p>
+
+    <section class="form">
+      <label for="source">Source mod folder or metadata file</label>
+      <div class="row">
+        <input id="source" type="text" placeholder="Choose a mod folder, mod.lua, or metadata JSON" />
+        <button type="button" class="secondary" id="btnSourceFolder">Mod folder…</button>
+        <button type="button" class="secondary" id="btnSourceFile">Metadata file…</button>
+      </div>
+
+      <label for="destination">Output folder (must be new or empty)</label>
+      <div class="row">
+        <input id="destination" type="text" placeholder="C:\Mods\converted_mod" />
+        <button type="button" class="secondary" id="btnDestination">Browse…</button>
+      </div>
+
+      <div class="pair">
+        <div>
+          <label for="name">Display name override <span>optional</span></label>
+          <input id="name" type="text" placeholder="Keep source name" />
+        </div>
+        <div>
+          <label for="author">Author override <span>optional</span></label>
+          <input id="author" type="text" placeholder="Keep source authors" />
+        </div>
+      </div>
+
+      <div class="warning">
+        This creates <code>mod.json</code> and <code>_metadata/modinfo.json</code>. Mod folders are copied unchanged; when you select a single metadata file, it is used as input. TF2 Lua scripts, models, textures and other game resources are <strong>not</strong> automatically made TF3-compatible.
+      </div>
+      <button type="button" class="primary" id="btnConvert">Inspect and convert</button>
+    </section>
+
+    <section class="progress" aria-live="polite">
+      <div class="progress-head"><strong id="jobLabel">Ready</strong><span id="jobMeta"></span></div>
+      <div class="bar"><span id="jobBar"></span></div>
+      <p id="jobStage">Choose a source mod and a new or empty output folder.</p>
+      <pre id="result"></pre>
+    </section>
+  </main>
+  <script src="tf3_converter.js"></script>
+</body>
+</html>

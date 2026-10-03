@@ -1,13 +1,15 @@
 import math
 import numpy as np
 
-numbertypes = {int, float, np.float64, np.float32}
+
+def _isnum(x):
+    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
 
 
 class Vec2:
 
     def __init__(self, x, y=None):
-        if type(x) in numbertypes:
+        if _isnum(x):
             self.x = x
             self.y = y
         elif hasattr(x, "__iter__") and len(x) == 2:
@@ -35,14 +37,14 @@ class Vec2:
         return Vec2(self.x - other.x, self.y - other.y)
 
     def __mul__(self, fac):
-        assert type(fac) in numbertypes
+        assert _isnum(fac)
         return Vec2(self.x * fac, self.y * fac)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __truediv__(self, fac):
-        assert type(fac) in numbertypes
+        assert _isnum(fac)
         return Vec2(self.x / fac, self.y / fac)
 
     def __neg__(self):

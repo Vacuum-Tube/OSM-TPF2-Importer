@@ -1,15 +1,16 @@
 certifi==2024.7.4
 geographiclib==2.0
 geopy==2.3.0
-luadata==1.0.5
+luadata==1.0.0  # Replace with the correct version if known
 lupa==1.10
-lxml==4.9.3
-networkx==3.1
-osmread==0.2
+lxml==4.9.2
+networkx==3.0
+osmread==0.1.2  # Replace with the correct version if known
 packaging==23.1
 pyparsing==3.0.9
-pyproj==3.6.0
+pyproj==3.4.1
 python-dateutil==2.8.2
 utm==0.7.0
-scipy==1.12.0
-numpy==1.26.4
+scipy==1.10.1
+numpy==1.24.2
+tqdm==4.64.1

@@ -2,12 +2,100 @@ local tools = require"osm_importer.tools"
 
 local st = {}
 
-st.fallback_type = "01_fusswege/01_fussweg_roter_schotter.lua" -- < choose this to better detect unknown types
--- st.fallback_type = "01_fusswege/01_fussweg_asphalt.lua" -- < choose this for visual appearance
+st.fallback_type = "standard/town_small_new.lua"
+st.small_type = "standard/town_small_new.lua"
 
-st.small_type = st.fallback_type
--- st.small_type = "lollo_1m_path.lua"
+local vanilla = {
+	town_small = "standard/town_small_new.lua",
+	town_medium = "standard/town_medium_new.lua",
+	town_large = "standard/town_large_new.lua",
+	town_xlarge = "standard/town_x_large_new.lua",
+	town_small_ow = "standard/town_small_one_way_new.lua",
+	town_medium_ow = "standard/town_medium_one_way_new.lua",
+	town_large_ow = "standard/town_large_one_way_new.lua",
+	town_small_old = "standard/town_small_old.lua",
+	town_medium_old = "standard/town_medium_old.lua",
+	country_small = "standard/country_small_new.lua",
+	country_medium = "standard/country_medium_new.lua",
+	country_large = "standard/country_large_new.lua",
+	country_xlarge = "standard/country_x_large_new.lua",
+	country_small_ow = "standard/country_small_one_way_new.lua",
+	country_medium_ow = "standard/country_medium_one_way_new.lua",
+	country_large_ow = "standard/country_large_one_way_new.lua",
+	runway = "airport/airport_runway_medium.lua",
+	taxi = "airport/airport_taxiway_medium.lua",
+}
 
+function st.vanillaFor(street)
+	local typ = street and street.type
+	local ow = street and street.oneway
+	if typ == "motorway" or typ == "trunk" then
+		return ow and vanilla.country_large_ow or vanilla.country_xlarge
+	elseif typ == "motorway_link" or typ == "trunk_link" then
+		return ow and vanilla.country_medium_ow or vanilla.country_large
+	elseif typ == "primary" or typ == "secondary" or typ == "primary_link" or typ == "secondary_link" then
+		if street.country ~= false then
+			return ow and vanilla.country_medium_ow or vanilla.country_medium
+		end
+		return ow and vanilla.town_medium_ow or vanilla.town_large
+	elseif typ == "tertiary" or typ == "tertiary_link" then
+		return ow and vanilla.town_small_ow or vanilla.town_medium
+	elseif typ == "residential" or typ == "living_street" or typ == "service" then
+		if street.surface == "cobblestone" or street.surface == "sett" then
+			return vanilla.town_small_old
+		end
+		return ow and vanilla.town_small_ow or vanilla.town_small
+	elseif typ == "unclassified" or typ == "track" then
+		return vanilla.country_small
+	elseif typ == "path" or typ == "footway" or typ == "cycleway" or typ == "bridleway" or typ == "pedestrian" or typ == "steps" or typ == "platform" then
+		return vanilla.town_small
+	elseif typ == "construction" then
+		return vanilla.town_small
+	elseif typ == "raceway" then
+		return vanilla.country_small_ow
+	elseif typ == "aeroway" then
+		return (street.subtype == "runway") and vanilla.runway or vanilla.taxi
+	elseif typ == "waterstream" then
+		return vanilla.country_small
+	end
+	return st.fallback_type
+end
+
+function st.resolve(name, street)
+	if not name or name == "" then
+		return name
+	end
+	if tools.resOk("street", name) then
+		return name
+	end
+	local fb = st.vanillaFor(street or {})
+	if fb and tools.resOk("street", fb) then
+		print("WARNING street type missing '" .. name .. "', using vanilla '" .. fb .. "'")
+		return fb
+	end
+	if tools.resOk("street", st.fallback_type) then
+		print("WARNING street type missing '" .. name .. "', using fallback '" .. st.fallback_type .. "'")
+		return st.fallback_type
+	end
+end
+
+function st.pickOk(list, idx, street)
+	if type(list) ~= "table" then
+		return st.resolve(list, street)
+	end
+	idx = math.max(1, math.min(#list, idx or 1))
+	for i = idx, #list do
+		if list[i] and list[i] ~= "" and tools.resOk("street", list[i]) then
+			return list[i]
+		end
+	end
+	for i = 1, idx - 1 do
+		if list[i] and list[i] ~= "" and tools.resOk("street", list[i]) then
+			return list[i]
+		end
+	end
+	return st.resolve(list[idx] or list[1], street)
+end
 
 function st.getType(street,options)
 	-- if true then return st.fallback_type end
@@ -26,39 +114,42 @@ function st.getType(street,options)
 	if options.build_streets_airport==false and st.osmtypes_airport[street.type] then
 		return
 	end
+	local chosen
 	local type_data = st.types[street.type]
 	if type(type_data)=="table" then
 		if street.lanes==3 and not street.oneway then
 			local lane3 = type_data["lane3"]
 			if type(lane3)=="string" then
-				return lane3
+				chosen = lane3
 			elseif type(lane3)=="function" then
-				return lane3(street)
+				chosen = lane3(street)
 			end
 		end
-		local lane_data = assert(type_data[street.oneway and "ow" or "tw"])
-		if type(lane_data)=="function" then
-			lane_data = assert(lane_data(street) or debugPrint(street), "ERROR function ow/tw highway type: "..street.type)
-		end
-		if type(lane_data)=="string" then
-			return lane_data
-		else
-			local lanes = street.lanes
-			if not street.oneway then
-				lanes = math.ceil( (lanes or 2) / 2 )
+		if not chosen then
+			local lane_data = type_data[street.oneway and "ow" or "tw"]
+			if type(lane_data)=="function" then
+				lane_data = lane_data(street)
 			end
-			return assert(lane_data[math.min(#lane_data, lanes or 1)] or debugPrint(street), "ERROR oneway data")
+			if type(lane_data)=="string" then
+				chosen = lane_data
+			elseif type(lane_data)=="table" then
+				local lanes = street.lanes
+				if not street.oneway then
+					lanes = math.ceil( (lanes or 2) / 2 )
+				end
+				return st.pickOk(lane_data, math.min(#lane_data, lanes or 1), street)
+			end
 		end
 	elseif type(type_data)=="function" then
-		return assert(type_data(street) or debugPrint(street), "ERROR function highway type: "..street.type)
+		chosen = type_data(street)
 	elseif type(type_data)=="string" then
-		return type_data
+		chosen = type_data
 	elseif type_data == false then
 		return
 	else
-		print("ERROR osm highway type: "..street.type)
+		print("WARNING osm highway type unmapped: "..tostring(street.type))
 	end
-	return st.fallback_type
+	return st.resolve(chosen or st.fallback_type, street)
 end
 
 --Die Vorabdefinition der Straßen hat Vorteile, da 1. umständliche Namen abgekürzt und leicht mehrfach verwendet werden können, 2. der Überblick über die abhängigen Mods ist besser, 3. teilweise unfassbar uneindeutige Dateinamen der Modder
@@ -146,13 +237,6 @@ local jf_roads = {  -- joefried_roadstrassen_em_2
 	landcobbl2_ow = "xjflandstr1/xstr_jf622_pflasterd_is_eb.lua",
 	landasphalt_ow = "xjflandstr1/xstr_jf645_teergelbk_is_eb.lua", -- 30kmh, no markings
 }
-local mel_autobahn = {  -- Autobahn_Kreuz_1
-	twoway_1lane = "country_medium_new_asphalt.lua",
-	twoway_2lanesmall = "Autobahn_ausfahrt_large.lua",
-	twoway_2lanelarge = "Autobahn.lua",
-	oneway_1lane = "Autobahn_ausfahrt.lua",
-	oneway_2lane = "Autobahn_ausfahrt_medium.lua",
-}
 -- local rutel_bach = {  -- Rutel_Brook_1
 	-- brook1m = "brook_slow_tiny.lua",
 	-- brook2m = "brook_slow_small.lua",
@@ -177,27 +261,27 @@ local mkh_airportroads = {  -- 2232249704 Airport Roads (EXPERIMENTAL)
 
 
 st.types = {  -- tag "highway"
-	steps = false,
-	platform = false,
+	steps = "standard/town_small_new.lua",
+	platform = "standard/town_small_new.lua",
 	motorway = {
 		tw = {
-			mel_autobahn.twoway_1lane,
-			mel_autobahn.twoway_2lanelarge,
+			"standard/country_large_new.lua",
+			"standard/country_x_large_new.lua",
 		},
 		ow = {
-			mel_autobahn.oneway_1lane,
-			mel_autobahn.oneway_2lane,
+			"standard/country_medium_one_way_new.lua",
+			"standard/country_large_one_way_new.lua",
 			lollo_sft.country_1way3lane,
 		}
 	},
 	motorway_link = {
 		tw = {
-			mel_autobahn.twoway_1lane,
-			mel_autobahn.twoway_2lanesmall,
+			"standard/country_medium_new.lua",
+			"standard/country_large_new.lua",
 		},
 		ow = {
-			mel_autobahn.oneway_1lane,
-			mel_autobahn.oneway_2lane,
+			"standard/country_small_one_way_new.lua",
+			"standard/country_medium_one_way_new.lua",
 			lollo_sft.country_1way3lane,
 		}
 	},
@@ -205,6 +289,8 @@ st.types = {  -- tag "highway"
 		tw = function(street)
 			if street.country~=false then
 				return {
+					"standard/country_medium_new.lua",
+					"standard/country_large_new.lua",
 					easybr_rtp.land_tw2,
 					easybr_rtp.land_tw4,
 				}
@@ -215,8 +301,8 @@ st.types = {  -- tag "highway"
 		ow = function(street)
 			if street.country~=false then
 				return {
-					mel_autobahn.oneway_1lane,
-					easybr_rtp.land_ow2,
+					"standard/country_small_one_way_new.lua",
+					"standard/country_medium_one_way_new.lua",
 				}
 			else  -- urban
 				return st.types.tertiary.ow(street)
@@ -244,6 +330,8 @@ st.types = {  -- tag "highway"
 					}
 				else  -- no sidewalk
 					return {
+						"standard/town_small_new.lua",
+						"standard/town_medium_new.lua",
 						easybr_rtp.stadt_asphalt_tw2,
 						easybr_rtp.stadt_asphalt_tw4,
 					}
@@ -321,8 +409,8 @@ st.types = {  -- tag "highway"
 		lane3 = majuen_smp.town3lane,
 	},
 	unclassified = {
-		tw = jf_roads.landasphalt,
-		ow = jf_roads.landasphalt_ow,
+		tw = "standard/country_small_new.lua",
+		ow = "standard/country_small_one_way_new.lua",
 		lane3 = function(street)
 			if street.country~=false then
 				return majuen_smp.country3lane
@@ -332,10 +420,16 @@ st.types = {  -- tag "highway"
 		end,
 	},
 	service = {
-		tw = easybr_rtp.stadt_asphalt_nomark,--marc26_tramstreet.s1lane_nosw_bigger
-		ow = easybr_rtp.stadt_asphalt_ow1,
+		tw = {
+			"standard/town_small_new.lua",
+			easybr_rtp.stadt_asphalt_nomark,
+		},
+		ow = {
+			"standard/town_small_one_way_new.lua",
+			easybr_rtp.stadt_asphalt_ow1,
+		},
 	},
-	construction = false, --marc26_tramstreet.s1lane_smsw,
+	construction = "standard/town_small_new.lua",
 	_pedestrian_surface = {
 		sett = jf_roads.stadtC,
 		cobblestone = jf_roads.stadtC,
@@ -431,9 +525,6 @@ st.types = {  -- tag "highway"
 		cobblestone = lollo_sft.cobble1m,
 	},
 	footway = function(street)
-		if street.level and street.level~=0 then
-			return ""
-		end
 		local r
 		if street.width and street.width<0.5 then
 			return lollo_sft.ultrathin
@@ -460,15 +551,12 @@ st.types = {  -- tag "highway"
 		else
 			-- r = lollo_sft.asphalt1way
 			-- r = majuen_smp.fgzone_3m
-			r = easybr_rtp.fus_asphalt
+			r = "standard/town_small_new.lua"
 		end
 		return r
 	end,
 	path = {
 		tw = function(street)
-			if street.level and street.level~=0 then
-				return ""
-			end
 			if street.segregated then
 				return majuen_smp.bikelane
 			else
@@ -481,9 +569,6 @@ st.types = {  -- tag "highway"
 			end
 		end,
 		ow = function(street)
-			if street.level and street.level~=0 then
-				return ""
-			end
 			-- return lollo_sft.asphalt1way
 			if street.surface then
 				return st.types.footway(street)
@@ -497,20 +582,23 @@ st.types = {  -- tag "highway"
 			if street.segregated then
 				return majuen_smp.bikelane
 			else
-				return easybr_rtp.fus_asphalt
+				return "standard/town_small_new.lua"
 			end
 		end,
 		ow = function(street)
-			return easybr_rtp.fus_asphalt
+			return "standard/town_small_one_way_new.lua"
 		end,
 	},
 	waterstream = function(data)
 		local width
 		if data.waterwaytype=="stream" then
 			width = data.width or 3
-		elseif data.waterwaytype=="river" then  --build only small rivers
+		elseif data.waterwaytype=="river" then
 			width = data.width or (data.boat and 30 or 15)
+		else
+			width = data.width or 4
 		end
+		width = tonumber(width) or 4
 		-- if width<2 then
 			-- return rutel_bach.brook1m
 		-- elseif width<3 then
@@ -531,17 +619,15 @@ st.types = {  -- tag "highway"
 		elseif width<20 then
 			return relozu_wattex.gray16m  -- looks a bit more natural
 		end
-		return ""
+		return relozu_wattex.gray16m
 	end,
 	aeroway = function(data)
 		if data.subtype=="runway" then
 			return mkh_airportroads.runway
-		elseif data.subtype=="taxiway" then
-			return mkh_airportroads.taxiway
 		end
-		return ""
+		return mkh_airportroads.taxiway
 	end,
-	raceway = jf_roads.landasphalt_ow,
+	raceway = "standard/country_small_one_way_new.lua",
 }
 
 local types = st.types
@@ -578,6 +664,8 @@ st.osmtypes_footways = tools.list2dict{
 	"path",
 	"track",
 	"bridleway",
+	"steps",
+	"platform",
 }
 st.osmtypes_water = tools.list2dict{"waterstream"}
 st.osmtypes_airport = tools.list2dict{"aeroway"}

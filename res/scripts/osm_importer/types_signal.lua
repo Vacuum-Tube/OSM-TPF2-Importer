@@ -1,351 +1,275 @@
+local tools = require "osm_importer.tools"
+
 local st = {}
 
+-- Match OSM railway:signal:* country prefixes when a pack is installed.
+-- Untagged signals use vanilla TPF2 types. Regional models are a fallback.
 
-------------- Mods
-
--- unixroot_natural_environment_pro_tpf2_2
-local nep = {
-	hl1 = "railroad/grimes_hlsignal_hp1.mdl",
-	hl10 = "railroad/grimes_hlsignal_hl10.mdl",
-	form_hp1 = "railroad/grimes_signal_hp1b.mdl",  --form8m
-	form_vr1 = "railroad/grimes_vorsignal_vr1.mdl",  --form
+local vanilla = {
+	main = "railroad/signal_new_block.mdl",
+	path = "railroad/signal_new_path.mdl",
+	old = "railroad/signal_old_block.mdl",
 }
 
--- sebbe_hv69signale_basis_1, sebbe_hv69signale_erw1_1 + erw2 + erw3
+local sms = {
+	main_2_left = "railroad/left_011_hsi_2_80.mdl",
+	main_3_left = "railroad/left_012_hsi_3_40.mdl",
+	main_4_left = "railroad/left_013_hsi_4.mdl",
+	main_5_left = "railroad/left_014_hsi_5.mdl",
+	main_2_right = "railroad/right_011_hsi_2_80.mdl",
+	main_3_right = "railroad/right_012_hsi_3_40.mdl",
+	main_4_right = "railroad/right_013_hsi_4.mdl",
+	main_5_right = "railroad/right_014_hsi_5.mdl",
+	block_2_left = "railroad/left_001_blsi_2_80.mdl",
+	block_4_left = "railroad/left_002_blsi_4_80_nxt_80.mdl",
+	block_5_left = "railroad/left_003_blsi_5_80_nxt_80.mdl",
+	block_2_right = "railroad/right_001_blsi_2_80.mdl",
+	block_4_right = "railroad/right_002_blsi_4_80_nxt_80.mdl",
+	block_5_right = "railroad/right_003_blsi_5_80_nxt_80.mdl",
+	maindist_2_left = "railroad/left_021_vdvsi_hsi_2_80.mdl",
+	maindist_3_left = "railroad/left_022_vdvsi_hsi_3_40.mdl",
+	maindist_4_left = "railroad/left_023_vdvsi_hsi_4.mdl",
+	maindist_5_left = "railroad/left_024_vdvsi_hsi_5.mdl",
+	maindist_2_right = "railroad/right_021_vdvsi_hsi_2_80.mdl",
+	maindist_3_right = "railroad/right_022_vdvsi_hsi_3_40.mdl",
+	maindist_4_right = "railroad/right_023_vdvsi_hsi_4.mdl",
+	maindist_5_right = "railroad/right_024_vdvsi_hsi_5.mdl",
+	distant_vdvsi_left = "railroad/left_031_vdvsi.mdl",
+	distant_vsi_left = "railroad/left_051_vsi.mdl",
+	distant_vsi2_left = "railroad/left_052_vsi.mdl",
+	distant_vdvsi_right = "railroad/right_031_vdvsi.mdl",
+	distant_vsi_right = "railroad/right_051_vsi.mdl",
+	distant_vsi2_right = "railroad/right_052_vsi.mdl",
+	dwarf_2_left = "railroad/left_041_fsi_2.mdl",
+	dwarf_3_left = "railroad/left_042_fsi_3.mdl",
+	dwarf_2_right = "railroad/right_041_fsi_2.mdl",
+	dwarf_3_right = "railroad/right_042_fsi_3.mdl",
+	crossing = "railroad/left_051_vsi.mdl",
+	crossing_right = "railroad/right_051_vsi.mdl",
+	crossing_distant = "railroad/left_053_vfsi.mdl",
+	crossing_distant_right = "railroad/right_053_vfsi.mdl",
+	whistle = "railroad/left_203_sign_horn_levelcrossing_wp.mdl",
+	whistle_right = "railroad/right_203_sign_horn_levelcrossing_wp.mdl",
+}
+
+local nep = {
+	hl1 = "railroad/grimes_hlsignal_hp1.mdl",
+}
+
 local hv = {
-	aus = "railroad/HV69-Signale/Basisset/HV69_Ausfahrt_Hp1.mdl",
 	aus_hp2 = "railroad/HV69-Signale/Basisset/HV69_Ausfahrt_Hp2.mdl",
 	bl = "railroad/HV69-Signale/Basisset/HV69_Block_Hp1.mdl",
 	bl_left = "railroad/HV69-Signale/Basisset/HV69_Block_Hp1_links.mdl",
 	ein = "railroad/HV69-Signale/Basisset/HV69_Einfahrt_Hp1.mdl",
 	ein_left = "railroad/HV69-Signale/Basisset/HV69_Einfahrt_Hp1_links.mdl",
-	ein_hp2 = "railroad/HV69-Signale/Basisset/HV69_Einfahrt_Hp2.mdl",
-	ein_hp2_left = "railroad/HV69-Signale/Basisset/HV69_Einfahrt_Hp2_links.mdl",
 	vr = "railroad/HV69-Signale/Basisset/HV69_Vorsignal_Vr1.mdl",
 	vr_left = "railroad/HV69-Signale/Basisset/HV69_Vorsignal_Vr1_links.mdl",
-	vr2 = "railroad/HV69-Signale/Basisset/HV69_Vorsignal_Vr2.mdl",
-	vr2_left = "railroad/HV69-Signale/Basisset/HV69_Vorsignal_Vr2_links.mdl",
 	vr_wdh = "railroad/HV69-Signale/Erweiterung I/HV69_VorsignalWdh_Vr1.mdl",
 	vr_wdh_left = "railroad/HV69-Signale/Erweiterung I/HV69_VorsignalWdh_Vr1_links.mdl",
-	vr2_wdh = "railroad/HV69-Signale/Erweiterung I/HV69_VorsignalWdh_Vr2.mdl",
-	vr2_wdh_left = "railroad/HV69-Signale/Erweiterung I/HV69_VorsignalWdh_Vr2_links.mdl",
-	aus_vr0 = "railroad/HV69-Signale/Erweiterung I/HV69_Ausfahrt_Hp1_Vr0.mdl",
 	aus_hp2_vr0 = "railroad/HV69-Signale/Erweiterung I/HV69_Ausfahrt_Hp2_Vr0.mdl",
 	bl_vr1 = "railroad/HV69-Signale/Erweiterung I/HV69_Block_Hp1_Vr1.mdl",
 	bl_vr1_left = "railroad/HV69-Signale/Erweiterung I/HV69_Block_Hp1_Vr1_links.mdl",
-	ein_vr0 = "railroad/HV69-Signale/Erweiterung I/HV69_Einfahrt_Hp1_Vr0.mdl",
-	ein_vr0_left = "railroad/HV69-Signale/Erweiterung I/HV69_Einfahrt_Hp1_Vr0_links.mdl",
 	ein_hp2_vr0 = "railroad/HV69-Signale/Erweiterung I/HV69_Einfahrt_Hp2_Vr0.mdl",
 	ein_hp2_vr0_left = "railroad/HV69-Signale/Erweiterung I/HV69_Einfahrt_Hp2_Vr0_links.mdl",
 }
 
--- 2770909719 Signalkomponenten
-local sk = {
-	zs2_F = "railroad/signals/zs2/ks_zs2_f.mdl",
-	zs2v_F = "railroad/signals/zs2v/ks_zs2v_f.mdl",
-	zp9 = "railroad/signals/zsa/ks_zp9.mdl",
-	zs6 = "railroad/signals/zsa/ks_zs6.mdl",
-	zs3_20 = "railroad/signals/zs3/ks_zs3_20.mdl",
-	zs3_30 = "railroad/signals/zs3/ks_zs3_30.mdl",
-	zs3_40 = "railroad/signals/zs3/ks_zs3_40.mdl",
-	zs3_50 = "railroad/signals/zs3/ks_zs3_50.mdl",
-	zs3_60 = "railroad/signals/zs3/ks_zs3_60.mdl",
-	zs3_70 = "railroad/signals/zs3/ks_zs3_70.mdl",
-	zs3_80 = "railroad/signals/zs3/ks_zs3_80.mdl",
-	zs3_90 = "railroad/signals/zs3/ks_zs3_90.mdl",
-	zs3_100 = "railroad/signals/zs3/ks_zs3_100.mdl",
-	zs3_110 = "railroad/signals/zs3/ks_zs3_110.mdl",
-	zs3_120 = "railroad/signals/zs3/ks_zs3_120.mdl",
-	zs3_130 = "railroad/signals/zs3/ks_zs3_130.mdl",
-	zs3_140 = "railroad/signals/zs3/ks_zs3_140.mdl",
-	zs3_150 = "railroad/signals/zs3/ks_zs3_150.mdl",
-	zs3_160 = "railroad/signals/zs3/ks_zs3_160.mdl",
-	zs3v_20 = "railroad/signals/zs3v/ks_zs3v_20.mdl",
-	zs3v_30 = "railroad/signals/zs3v/ks_zs3v_30.mdl",
-	zs3v_40 = "railroad/signals/zs3v/ks_zs3v_40.mdl",
-	zs3v_50 = "railroad/signals/zs3v/ks_zs3v_50.mdl",
-	zs3v_60 = "railroad/signals/zs3v/ks_zs3v_60.mdl",
-	zs3v_70 = "railroad/signals/zs3v/ks_zs3v_70.mdl",
-	zs3v_80 = "railroad/signals/zs3v/ks_zs3v_80.mdl",
-	zs3v_90 = "railroad/signals/zs3v/ks_zs3v_90.mdl",
-	zs3v_100 = "railroad/signals/zs3v/ks_zs3v_100.mdl",
-	zs3v_110 = "railroad/signals/zs3v/ks_zs3v_110.mdl",
-	zs3v_120 = "railroad/signals/zs3v/ks_zs3v_120.mdl",
-	zs3v_130 = "railroad/signals/zs3v/ks_zs3v_130.mdl",
-	zs3v_140 = "railroad/signals/zs3v/ks_zs3v_140.mdl",
-	zs3v_150 = "railroad/signals/zs3v/ks_zs3v_150.mdl",
-	zs3v_160 = "railroad/signals/zs3v/ks_zs3v_160.mdl",
-}
-
--- 2920749928 Ks-Signalsystem
 local ks = {
 	asig_ks1 = "railroad/ks_signale/asig/ks_fm_4_6_asig_hp0_ks1.mdl",
-	msig_asig = "railroad/ks_signale/msig_als_asig/ks_fm_4_6_msig_asig_hp0_ks1.mdl",
-	msig_asig_blink = "railroad/ks_signale/msig_als_asig/ks_fm_4_6_msig_asig_hp0_ks1_blink.mdl",
-	asig_ks1_zs3_40 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_40.mdl",
-	asig_ks1_zs3_50 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_50.mdl",
-	asig_ks1_zs3_60 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_60.mdl",
-	asig_ks1_zs3_70 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_70.mdl",
-	asig_ks1_zs3_80 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_80.mdl",
-	asig_ks1_zs3_90 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_90.mdl",
-	asig_ks1_zs3_100 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_100.mdl",
-	asig_ks1_zs3_110 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_110.mdl",
-	asig_ks1_zs3_120 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_120.mdl",
-	asig_ks1_zs3_130 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_130.mdl",
-	asig_ks1_zs3_140 = "railroad/ks_signale/asig/ks_amnk_asig_hp0_ks1_zs3_140.mdl",
-	bsig_ks1 = "railroad/ks_signale/bsig/ks_amhk_bsig_hp0_ks1.mdl",
-	bsig_ks1_left = "railroad/ks_signale/bsig/ks_amhk_bsig_hp0_ks1_links.mdl",
 	msig_ks1 = "railroad/ks_signale/msig/ks_amhk_msig_hp0_ks1.mdl",
 	msig_ks1_left = "railroad/ks_signale/msig/ks_amhk_msig_hp0_ks1_links.mdl",
+	bsig_ks1 = "railroad/ks_signale/bsig/ks_amhk_bsig_hp0_ks1.mdl",
+	bsig_ks1_left = "railroad/ks_signale/bsig/ks_amhk_bsig_hp0_ks1_links.mdl",
+	msig_asig_blink = "railroad/ks_signale/msig_als_asig/ks_fm_4_6_msig_asig_hp0_ks1_blink.mdl",
 	msig_ks1_blink = "railroad/ks_signale/msig/ks_amhk_msig_hp0_ks1_blink.mdl",
 	msig_ks1_blink_left = "railroad/ks_signale/msig/ks_amhk_msig_hp0_ks1_blink_links.mdl",
-	msig_ks1_zs3_100 = "railroad/ks_signale/msig/ks_amhk_msig_hp0_ks1_zs3_100.mdl",
-	msig_ks1_zs3_100_left = "railroad/ks_signale/msig/ks_amhk_msig_hp0_ks1_zs3_100_links.mdl",
 	vsig = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1.mdl",
 	vsig_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_links.mdl",
 	vsig_wdh = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_w.mdl",
-	-- vsig_wdh_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_w_links.mdl",  --bug
 	vsig_wdh_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks2_w_links.mdl",
-	vsig_zs3v_80_left = "railroad/ks_signale/vsig/ks_fm_4_6_vsig_ks2_ks1_zs3v_80_links.mdl",
 	sh1_high = "railroad/ks_signale/ls/ks_ls_hoch_hp0_sh1.mdl",
 	sh1_low = "railroad/ks_signale/ls/ks_ls_niedrig_hp0_sh1.mdl",
 	sh1_low_left = "railroad/ks_signale/ls/ks_ls_niedrig_hp0_sh1_links.mdl",
 }
 
--- 2770910636 Level crossing signals
-local bue = {
-	buesig = "railroad/BUe-Signale/buesig_modern.mdl",
-	ptafel = "railroad/BUe-Signale/bue_mast_P_wp.mdl",
-}
+local function M(...)
+	return tools.pick("model", ...)
+end
 
+local function side(signal, leftName, rightName)
+	if signal.position_left then
+		return M(leftName, rightName)
+	end
+	return M(rightName, leftName)
+end
+
+function st.swedish_main(signal)
+	if signal.main_function == "exit" then
+		return side(signal, sms.maindist_3_left, sms.maindist_3_right) or M(vanilla.main)
+	elseif signal.main_function == "entry" then
+		return side(signal, sms.main_3_left, sms.main_3_right) or M(vanilla.main)
+	end
+	return side(signal, sms.block_5_left, sms.block_5_right)
+		or side(signal, sms.block_4_left, sms.block_4_right)
+		or M(vanilla.main)
+end
+
+function st.swedish_distant(signal)
+	if signal.distant_repeated then
+		return side(signal, sms.distant_vdvsi_left, sms.distant_vdvsi_right) or M(vanilla.path)
+	end
+	return side(signal, sms.distant_vsi_left, sms.distant_vsi_right) or M(vanilla.path)
+end
+
+function st.swedish_minor(signal)
+	if signal.minor_dwarf then
+		return side(signal, sms.dwarf_2_left, sms.dwarf_2_right) or M(vanilla.old)
+	end
+	return side(signal, sms.dwarf_3_left, sms.dwarf_3_right) or M(vanilla.old)
+end
+
+local function swedish_speed(signal)
+	local spd = tonumber(signal.speedlimit_speed_int or signal.speedlimitdistant_speed_int)
+	if not spd then
+		return
+	end
+	local n = string.format("%03d", math.floor(spd / 5) * 5)
+	return M(
+		"railroad/sign_speed_" .. n .. ".mdl",
+		"railroad/sign_speed_" .. n .. "_no_pole.mdl"
+	)
+end
 
 function st.getTypes(signal)
 	local sigtypes = {}
-	
 	local function add(o)
 		if o then
 			table.insert(sigtypes, o)
 			return o
 		end
-	end	
-	
+	end
+
 	if signal.main and signal.distant and add(st.maindistant(signal))
 	or signal.combined and add(st.combined(signal))
 	or signal.main and add(st.main(signal))
-	or signal.distant and add(st.distant(signal)) 
+	or signal.distant and add(st.distant(signal))
 	or signal.minor and add(st.minor(signal))
-	then end	
-	
+	then end
+
 	if signal.speedlimit then
 		add(st.speedlimit(signal))
 	end
-	
 	if signal.speedlimitdistant then
 		add(st.speedlimitdistant(signal))
 	end
-	
 	if signal.crossing then
-		add(bue.buesig)  -- DE-ESO:bü
+		add(side(signal, sms.crossing, sms.crossing_right) or M(vanilla.path))
 	end
-
 	if signal.crossingdistant then
-		-- DE-ESO:bü2
+		add(side(signal, sms.crossing_distant, sms.crossing_distant_right))
 	end
-
-	if signal.route then
-		add(sk.zs2_F)
-	end
-
-	if signal.routedistant then
-		add(sk.zs2v_F)
-	end
-
-	-- if signal.wrongtrack then
-		-- add(sk.zs6)
-	-- end
-
-	if signal.departure then
-		add(sk.zp9)
-	end
-
 	if signal.whistle then
-		add(bue.ptafel)
+		add(side(signal, sms.whistle, sms.whistle_right))
 	end
-
-	-- if signal.stop=="DE-ESO:ne5"
-	
 	return sigtypes
 end
 
 function st.main(signal)
-	-- not considering semaphores
-	if signal.main=="DE-ESO:hp" then
-		if signal.main_function=="exit" then
-			return hv.aus_hp2
-		elseif signal.main_function=="entry" then
-			if signal.position_left then
-				return hv.ein_left
-			else
-				return hv.ein
-			end
-		else -- make default if function missing; if signal.main_function=="block" or signal.main_function=="intermediate" then -- what's the difference?
-			if signal.position_left then
-				return hv.bl_left
-			else
-				return hv.bl
-			end
+	local tag = signal.main or ""
+	if tag:starts("SE-SJ") then
+		return st.swedish_main(signal)
+	elseif tag == "DE-ESO:hp" then
+		if signal.main_function == "exit" then
+			return M(hv.aus_hp2) or M(vanilla.main)
+		elseif signal.main_function == "entry" then
+			return M(signal.position_left and hv.ein_left or hv.ein) or M(vanilla.main)
 		end
-	elseif signal.main=="DE-ESO:ks" then
-		if signal.main_function=="exit" then
-			return ks.asig_ks1
-		elseif signal.main_function=="entry" then
-			if signal.position_left then
-				return ks.msig_ks1_left
-			else
-				return ks.msig_ks1
-			end
-		else -- make default if function missing; if signal.main_function=="block" or signal.main_function=="intermediate" then
-			if signal.position_left then
-				return ks.bsig_ks1_left
-			else
-				return ks.bsig_ks1
-			end
+		return M(signal.position_left and hv.bl_left or hv.bl) or M(vanilla.main)
+	elseif tag == "DE-ESO:ks" then
+		if signal.main_function == "exit" then
+			return M(ks.asig_ks1) or M(vanilla.main)
+		elseif signal.main_function == "entry" then
+			return M(signal.position_left and ks.msig_ks1_left or ks.msig_ks1) or M(vanilla.main)
 		end
-	elseif signal.main=="DE-ESO:hl" then
-		return nep.hl1
+		return M(signal.position_left and ks.bsig_ks1_left or ks.bsig_ks1) or M(vanilla.main)
+	elseif tag == "DE-ESO:hl" then
+		return M(nep.hl1) or M(vanilla.main)
 	end
+	return M(vanilla.main) or st.swedish_main(signal)
 end
 
 function st.combined(signal)
-	if signal.combined=="DE-ESO:ks" then  -- dont actually quite understand what "combined" is
-		if signal.combined_function=="exit" then
-			return ks.msig_asig_blink
-		elseif signal.combined_function=="entry" then
-			if signal.position_left then
-				return ks.msig_ks1_blink_left
-			else
-				return ks.msig_ks1_blink
-			end
-		else --if signal.combined_function=="block" or signal.combined_function=="intermediate" then
-			if signal.position_left then
-				return ks.msig_ks1_left
-			else
-				return ks.msig_ks1
-			end
+	if signal.combined == "DE-ESO:ks" then
+		if signal.combined_function == "exit" then
+			return M(ks.msig_asig_blink) or M(vanilla.main)
 		end
-	-- elseif signal.combined=="DE-ESO:hl"
+		return M(signal.position_left and ks.msig_ks1_blink_left or ks.msig_ks1_blink) or M(vanilla.main)
 	end
+	return M(vanilla.main) or st.swedish_main(signal)
 end
 
 function st.maindistant(signal)
-	if signal.main=="DE-ESO:hp" and signal.distant=="DE-ESO:vr" then
-		if signal.main_function=="exit" then
-			return hv.aus_hp2_vr0
-		elseif signal.main_function=="entry" then
-			if signal.position_left then
-				return hv.ein_hp2_vr0_left
-			else
-				return hv.ein_hp2_vr0
-			end
-		else --if signal.main_function=="block" or signal.main_function=="intermediate" then -- what's the difference?
-			if signal.position_left then
-				return hv.bl_vr1_left
-			else
-				return hv.bl_vr1
-			end
-		end
+	local main = signal.main or ""
+	local dist = signal.distant or ""
+	if main:starts("SE-SJ") or dist:starts("SE-SJ") then
+		return side(signal, sms.maindist_3_left, sms.maindist_3_right) or st.swedish_main(signal)
 	end
+	if main == "DE-ESO:hp" and dist == "DE-ESO:vr" then
+		if signal.main_function == "exit" then
+			return M(hv.aus_hp2_vr0) or M(vanilla.main)
+		elseif signal.main_function == "entry" then
+			return M(signal.position_left and hv.ein_hp2_vr0_left or hv.ein_hp2_vr0) or M(vanilla.main)
+		end
+		return M(signal.position_left and hv.bl_vr1_left or hv.bl_vr1) or M(vanilla.main)
+	end
+	return M(vanilla.main) or side(signal, sms.maindist_3_left, sms.maindist_3_right) or st.swedish_main(signal)
 end
 
 function st.distant(signal)
-	-- not considering semaphores
-	if signal.distant=="DE-ESO:vr" then
-		if signal.distant_repeated then --or signal.distant_shortened 
-			if signal.position_left then
-				return hv.vr_wdh_left
-			else
-				return hv.vr_wdh
-			end
-		else
-			if signal.position_left then
-				return hv.vr_left
-			else
-				return hv.vr
-			end
+	local tag = signal.distant or ""
+	if tag:starts("SE-SJ") then
+		return st.swedish_distant(signal)
+	elseif tag == "DE-ESO:vr" then
+		if signal.distant_repeated then
+			return M(signal.position_left and hv.vr_wdh_left or hv.vr_wdh) or M(vanilla.path)
 		end
-	elseif signal.distant=="DE-ESO:ks" then
-		if signal.distant_repeated then --or signal.distant_shortened 
-			if signal.position_left then
-				return ks.vsig_wdh_left
-			else
-				return ks.vsig_wdh
-			end
-		else
-			if signal.position_left then
-				return ks.vsig_left
-			else
-				return ks.vsig
-			end
+		return M(signal.position_left and hv.vr_left or hv.vr) or M(vanilla.path)
+	elseif tag == "DE-ESO:ks" then
+		if signal.distant_repeated then
+			return M(signal.position_left and ks.vsig_wdh_left or ks.vsig_wdh) or M(vanilla.path)
 		end
-	-- elseif signal.distant=="DE-ESO:hl" then
+		return M(signal.position_left and ks.vsig_left or ks.vsig) or M(vanilla.path)
 	end
+	return M(vanilla.path) or st.swedish_distant(signal)
 end
 
 function st.minor(signal)
-	if signal.minor:starts("DE-ESO:sh") then
+	local tag = tostring(signal.minor or "")
+	if tag:starts("SE-SJ") then
+		return st.swedish_minor(signal)
+	elseif tag:starts("DE-ESO:sh") then
 		if signal.minor_dwarf then
-			if signal.position_left then
-				return ks.sh1_low_left
-			else
-				return ks.sh1_low
-			end
-		else
-			return ks.sh1_high
+			return M(signal.position_left and ks.sh1_low_left or ks.sh1_low) or M(vanilla.old)
 		end
+		return M(ks.sh1_high) or M(vanilla.old)
 	end
+	return M(vanilla.old) or st.swedish_minor(signal)
 end
 
 function st.speedlimit(signal)
-	if signal.speedlimit=="DE-ESO:zs3" then
-		if signal.speedlimit_form=="sign" then
-			
-		else  -- light
-			local res = sk["zs3_"..tostring(signal.speedlimit_speed_int or "")]
-			if res then 
-				return res
-			else
-				if signal.speedlimit_speed_int~=nil then
-					print("ERROR no signal DE-ESO:zs3 found for speed:",signal.speedlimit_speed_int)
-				end
-			end
-		end
-	elseif signal.speedlimit=="DE-ESO:lf7" then  -- sign
-		-- This mod 1966094307 has the signs, but as constructions not as signals...
-	end
+	return swedish_speed(signal)
 end
-	
+
 function st.speedlimitdistant(signal)
-	if signal.speedlimitdistant=="DE-ESO:zs3v" then
-		if signal.speedlimitdistant_form=="sign" then
-			
-		else  -- light
-			local res = sk["zs3v_"..tostring(signal.speedlimitdistant_speed_int or "")]
-			if res then 
-				return res
-			else
-				if signal.speedlimitdistant_speed_int~=nil then
-					print("ERROR no signal DE-ESO:zs3v found for speed:",signal.speedlimitdistant_speed_int)
-				end
-			end
-		end
-	elseif signal.speedlimitdistant=="DE-ESO:lf6" then  -- sign
-		-- This mod 1966094307 has the signs, but as constructions not as signals...
-	end
+	return swedish_speed(signal)
 end
 
 function st.isWaypoint(mdl)
-	local model = api.res.modelRep.get(api.res.modelRep.find(mdl))
-	return model.metadata.signal.type==1
+	local id = api.res.modelRep.find(mdl)
+	if id < 0 then
+		return false
+	end
+	local model = api.res.modelRep.get(id)
+	return model.metadata.signal and model.metadata.signal.type == 1
 end
 
 return st

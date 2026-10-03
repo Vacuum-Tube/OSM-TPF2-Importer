@@ -1,0 +1,5 @@
+pywebview>=5.0
+pillow>=10.0
+geopy>=2.3
+tifffile>=2024.0
+imagecodecs>=2024.0

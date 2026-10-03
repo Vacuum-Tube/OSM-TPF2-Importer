@@ -1,7 +1,10 @@
 from math import pi
 import networkx as nx
 
+from converter_log import bind_print
 from vec2 import Vec2
+
+print = bind_print("WARNING")
 
 
 def create_graph(nodes, edges):

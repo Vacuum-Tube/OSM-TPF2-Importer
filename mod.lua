@@ -19,6 +19,7 @@ function data()
 		-- runFn = function (settings)
 		postRunFn = function (settings)
 			(require"osm_importer.models").postRunFnScript()
+			(require"osm_importer.buildings").postRunFnScript()
 		end
 	}
 end

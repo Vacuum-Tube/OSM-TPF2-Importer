@@ -1,15 +1,15 @@
-local success, Polygon = pcall(require, "paver.polygon")
-local success, paver = pcall(require, "paver.main")
-if not success then
-	print("WARNING: Could not load paver.main (Is Paver mod activated?)")
-end
+local okPoly, Polygon = pcall(require, "paver.polygon")
+local okPaver, paverMod = pcall(require, "paver.main")
 
+local p = {}
+p.available = okPoly and okPaver and Polygon and paverMod
+if not p.available then
+	print("WARNING: Could not load Paver (Is Paver mod activated?). Ground surfaces will be skipped.")
+end
 
 -- https://wiki.openstreetmap.org/wiki/DE:Key:landuse
 -- https://wiki.openstreetmap.org/wiki/DE:Key:natural
 -- https://wiki.openstreetmap.org/wiki/DE:Key:surface
-
-local p = {}
 
 p.groundTextures = {
 	paved = "asphalt1",
@@ -74,11 +74,18 @@ p.groundTextures = {
 	water = "water_dirty",
 }
 
-function p.polygonPositions(nodes,polygon)
+function p.polygonPositions(nodes, polygon)
 	local points = {}
-	for i,nodeId in pairs(polygon) do
-		if i~=#polygon then -- remove last point=start point
-			table.insert(points, assert(assert(nodes[nodeId] or print(nodeId)).pos or print(nodeId)) )
+	if type(nodes) ~= "table" or type(polygon) ~= "table" then
+		return points
+	end
+	local last = #polygon
+	for i, nodeId in pairs(polygon) do
+		if i ~= last then
+			local node = nodes[nodeId]
+			if node and node.pos then
+				points[#points + 1] = node.pos
+			end
 		end
 	end
 	return points
@@ -93,31 +100,39 @@ function p.getTexType(surface)
 end
 
 
-function p.pavePolygon(nodes,polygon,surface)
-	local groundTex = p.getTexType(surface)
-	if groundTex then
-		local id = paver.pave(Polygon:Create(p.polygonPositions(nodes, polygon)), groundTex)
-		if id then
-			game.interface.setName(id, "OSM surface="..tostring(surface))
-			return id
-		else
-			print("ERROR with pavePolygon", toString(polygon))
-			return false
-		end
+function p.pavePolygon(nodes, polygon, surface)
+	if not p.available then
+		return
 	end
+	local groundTex = p.getTexType(surface)
+	if not groundTex then
+		return
+	end
+	local points = p.polygonPositions(nodes, polygon)
+	if #points < 3 then
+		return false
+	end
+	local id
+	local ok = pcall(function()
+		id = paverMod.pave(Polygon:Create(points), groundTex)
+	end)
+	if not ok then
+		return false
+	end
+	if id then
+		pcall(game.interface.setName, id, "OSM surface=" .. tostring(surface))
+		return id
+	end
+	return false
 end
 
-function p.paveMultiPolygon(nodes,mp,surface)
-	for i,polygon in pairs(mp.outer) do
-		local id = p.pavePolygon(nodes,polygon,surface)
-		if id then
-			game.interface.setName(id, game.interface.getName(id).."  [MULTIPOLYGON]")
-		end
-		if id==false then
-			print("ERROR with paveMultiPolygon", toString(mp))
-		end
+function p.paveMultiPolygon(nodes, mp, surface)
+	if not p.available or type(mp) ~= "table" then
+		return
 	end
-		-- ignore mp.inner , cant handle 
+	for _, polygon in pairs(mp.outer or {}) do
+		p.pavePolygon(nodes, polygon, surface)
+	end
 end
 
 -- function p.res_test()  -- can only check the ground_texture file (in paver) but not the actual terrain texture from mod

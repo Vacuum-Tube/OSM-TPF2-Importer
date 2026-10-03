@@ -2,10 +2,24 @@ import math
 from math import pi
 import numpy as np
 
+from converter_log import bind_print
 from vec2 import Vec2
 from cubic_spline import MyCubicSpline as CubicSpline, approx_length_arc
 from graph_tools import create_graph, create_sub_graph, create_bridge_graph, create_ground_graph, \
     get_paths_to_simplify, is_node_removable, remove_node
+
+print = bind_print(
+    "=",
+    "Street:",
+    "Track:",
+    "Bridge:",
+    "Ground:",
+    "Track Paths",
+    "Street Paths",
+    "Bridge Paths",
+    "Ground Paths",
+    "WARNING",
+)
 
 
 def optimize(data):

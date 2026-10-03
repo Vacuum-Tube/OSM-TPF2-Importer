@@ -74,6 +74,22 @@ function t.getTerrainZ(x,y)
 	return api.engine.terrain.getHeightAt(api.type.Vec2f.new(x, y))  --getBaseHeightAt
 end
 
+function t.safeTerrainZ(x, y, fallback)
+	fallback = fallback or 0
+	if not x or not y then
+		return fallback
+	end
+	local okValid, valid = pcall(t.isValidCoordinate, x, y)
+	if not okValid or not valid then
+		return fallback
+	end
+	local ok, z = pcall(t.getTerrainZ, x, y)
+	if ok and type(z) == "number" then
+		return z
+	end
+	return fallback
+end
+
 function t.isValidCoordinate(x,y)
 	return api.engine.terrain.isValidCoordinate(api.type.Vec2f.new(x, y))
 end
@@ -81,6 +97,43 @@ end
 function t.isOverWater(x,y)
 	local terrain = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.TERRAIN)
 	return game.interface.getHeight({x, y}) > terrain.waterLevel
+end
+
+function t.resFind(kind, name)
+	if not name or name == "" then
+		return -1
+	end
+	if kind == "street" then
+		return api.res.streetTypeRep.find(name)
+	elseif kind == "track" then
+		return api.res.trackTypeRep.find(name)
+	elseif kind == "bridge" then
+		return api.res.bridgeTypeRep.find(name)
+	elseif kind == "tunnel" then
+		return api.res.tunnelTypeRep.find(name)
+	elseif kind == "model" then
+		return api.res.modelRep.find(name)
+	end
+	return -1
+end
+
+function t.resOk(kind, name)
+	return t.resFind(kind, name) >= 0
+end
+
+function t.pick(kind, ...)
+	local n = select("#", ...)
+	for i = 1, n do
+		local name = select(i, ...)
+		if type(name) == "table" then
+			local inner = t.pick(kind, table.unpack(name))
+			if inner then
+				return inner
+			end
+		elseif type(name) == "string" and t.resOk(kind, name) then
+			return name
+		end
+	end
 end
 
 function t.getNearestNode(pos,bnodelist,maxdist)

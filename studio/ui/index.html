@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSM Map Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="mast">
+      <div class="mast-mark">
+        <span class="rule"></span>
+        <div class="mast-title-row">
+          <h1>OSM · <span id="gameTitle">TPF2</span> <em>Studio</em></h1>
+          <div class="mast-actions">
+            <button type="button" id="btnTf3Converter" class="game-switch" hidden>TF3 Mod Converter</button>
+            <button type="button" id="btnTools" class="game-switch">Switch to TF3 →</button>
+          </div>
+        </div>
+      </div>
+      <p class="mast-sub" id="gameSubtitle">Pick a place on OpenStreetMap and prepare data for your game.</p>
+      <p class="game-notice" id="gameNotice" hidden></p>
+      <ol class="pipe" id="pipeline" aria-label="Progress"></ol>
+      <div class="search">
+        <input id="searchQ" type="search" placeholder="Search any city or place…" autocomplete="off" />
+        <button type="button" id="btnSearch">Seek</button>
+        <div id="searchHits" class="hits" hidden></div>
+      </div>
+    </header>
+
+    <div class="stage">
+      <section class="map-wrap">
+        <div id="map"></div>
+        <div class="map-legend">
+          <span class="swatch"></span>
+          <span id="mapLegendText">Selected extent · © OpenStreetMap contributors</span>
+        </div>
+        <div class="map-hint">Shift-click to drop the box center. Use the layer control for OSM or satellite.</div>
+      </section>
+
+      <aside class="dock">
+        <nav class="steps">
+          <button class="step is-on" data-panel="map">1 Map</button>
+          <button class="step" data-panel="osm">2 OSM</button>
+          <button class="step" data-panel="mods" data-tpf2-only>3 Mods</button>
+          <button class="step" data-panel="sat">4 Terrain</button>
+          <button class="step" data-panel="install" data-tpf2-only>5 Install</button>
+        </nav>
+
+        <div class="panels">
+          <article class="panel is-on" id="panel-map">
+            <h2>Map square</h2>
+            <p class="lede" id="mapLede">Search a place or Shift-click the map. The yellow line is that many metres on the ground, 1:1, for any OSM area.</p>
+            <label id="sizeLabel">Size
+              <select id="sizeKey"></select>
+            </label>
+            <div class="pair">
+              <label>Lat <input id="lat" type="number" step="0.000001" /></label>
+              <label>Lon <input id="lon" type="number" step="0.000001" /></label>
+            </div>
+            <div class="btnrow">
+              <button type="button" id="btnPlace">Box at view center</button>
+              <button type="button" id="btnFit" class="ghost">Fit yellow line</button>
+            </div>
+            <dl class="facts" id="facts"></dl>
+            <button type="button" id="btnOsmOrg" class="ghost">Open this view on openstreetmap.org</button>
+          </article>
+
+          <article class="panel" id="panel-osm">
+            <h2>Download OSM</h2>
+            <p class="lede" id="osmLede">Pulls highways, railways, landuse, water, places, signals, and mapped houses/shops/industry for the yellow box. Garages, sheds and untyped <code>building=yes</code> are skipped.</p>
+            <label>Download mode
+              <select id="osmMode">
+                <option value="filtered">Importer data (recommended)</option>
+                <option value="full">Everything in the box (Overpass full dump)</option>
+              </select>
+            </label>
+            <label class="checkline"><input id="osmRefresh" type="checkbox" /> Force a fresh request (skip the 6-hour local cache)</label>
+            <div class="btnrow">
+              <button type="button" id="btnDownload">Download inside yellow line</button>
+              <button type="button" id="btnPickOsm" class="ghost">Use local OSM</button>
+            </div>
+            <div class="btnrow">
+              <button type="button" id="btnUseOsmBounds" class="ghost">Use extract bounds</button>
+              <button type="button" id="btnGeofabrik" class="ghost">Geofabrik page…</button>
+              <button type="button" id="btnGeofabrikDl" class="ghost">Download country .osm.bz2</button>
+            </div>
+            <p class="path" id="osmPath"></p>
+            <dl class="facts" id="workFacts"></dl>
+            <p class="warn" id="osmWarn" hidden></p>
+            <div class="btnrow">
+              <button type="button" id="btnCrop">Crop to yellow box</button>
+              <button type="button" id="btnConvert" data-tpf2-only>Convert to osmdata.lua</button>
+            </div>
+            <div class="btnrow">
+              <button type="button" id="btnConvertBuildings" class="ghost" data-tpf2-only>Buildings sidecar only</button>
+              <button type="button" id="btnMapMods" data-tpf2-only>Find &amp; subscribe mods for this map</button>
+            </div>
+            <p class="path" id="osmdataPath"></p>
+            <p class="note">Identical OSM queries are cached locally for 6 hours. Public services are requested with attribution and paced requests; HTTP 429/Retry-After is respected. Country extracts (.osm / .osm.bz2) are cropped to the yellow box before convert. PBF needs osmium or a Geofabrik .osm.bz2.</p>
+          </article>
+
+          <article class="panel" id="panel-mods" data-tpf2-only>
+            <h2>Workshop mods</h2>
+            <p class="lede">Subscribe via Steam only. Generic street/track/airport packs are listed for any map. Country packs are suggested only when the box is in that country. Missing packs fall back to vanilla TPF2 types.</p>
+            <div class="btnrow">
+              <button type="button" id="btnScanMods">Scan installed</button>
+              <button type="button" id="btnMapMods2">Mods for this map</button>
+              <button type="button" id="btnOpenMissing">Open missing in Steam</button>
+            </div>
+            <div class="searchline">
+              <input id="modQ" type="search" placeholder="Search Workshop (streets, signals, tram…)" />
+              <button type="button" id="btnModSearch">Search</button>
+            </div>
+            <div id="modList" class="modlist"></div>
+          </article>
+
+          <article class="panel" id="panel-sat">
+            <h2>Heightmap</h2>
+            <p class="lede" id="heightmapLede">16-bit grayscale PNG cropped to the selected map square. Terrain data uses Terrarium with FABDEM (or Copernicus / SRTM) bare-earth where available.</p>
+            <label class="checkline"><input id="hmStrip" type="checkbox" checked /> Strip trees / buildings (DTM mix)</label>
+            <label class="checkline" id="hmCopyLabel"><input id="hmCopy" type="checkbox" checked /> Copy into TPF2 heightmaps folder</label>
+            <label id="hmPixelsLabel" hidden>TF3 output pixel size (verify against the selected TF3 map format)
+              <input id="hmPixels" type="number" min="257" max="6145" step="1" placeholder="Enter exact output pixels" />
+            </label>
+            <button type="button" id="btnHeightmap">Generate heightmap</button>
+            <p class="note" id="hmHint">Heightmap size is selected from the map preset. Output is capped at 6,145 pixels per side: larger grids scale quadratically and a 16,385-pixel grid can exceed 8 GiB of peak temporary arrays. This cap includes the largest current TPF2 preset.</p>
+            <img id="hmPreview" class="preview" alt="" hidden />
+            <hr class="rule-soft" />
+            <h2>Satellite overlay</h2>
+            <p class="lede" id="overlayLede">Esri World Imagery mosaic covering the selected map square. Attribution is saved alongside exported images.</p>
+            <label>Zoom (blank = auto)
+              <input id="satZoom" type="number" min="11" max="16" placeholder="auto" />
+            </label>
+            <button type="button" id="btnSat">Download overlay</button>
+            <img id="ovPreview" class="preview" alt="" hidden />
+            <p class="note">Attribution: Esri, Maxar, Earthstar Geographics. Personal overlay use.</p>
+          </article>
+
+          <article class="panel" id="panel-install" data-tpf2-only>
+            <h2>Install &amp; launch</h2>
+            <p class="lede">Finds the TPF2 game, <code>mods</code>, Workshop, and heightmap folders from Steam, then copies the in-game tool into <code>mods/osm_importer_1</code>. Pause the game and open the OSM button on the menu bar.</p>
+            <label>Game folder
+              <input id="gameDir" type="text" placeholder="Auto-detected from Steam / this mods folder" />
+            </label>
+            <div class="btnrow">
+              <button type="button" id="btnAutoFind">Auto-find from game</button>
+              <button type="button" id="btnGameFolder" class="ghost">Browse…</button>
+            </div>
+            <dl class="facts" id="gamePaths"></dl>
+            <p class="note" id="installPreview"></p>
+            <fieldset>
+              <legend>Build options (also used in-game)</legend>
+              <div id="optGrid" class="optgrid"></div>
+            </fieldset>
+            <div class="btnrow">
+              <button type="button" id="btnInstall">Install into Mods</button>
+              <button type="button" id="btnLaunch">Launch TPF2</button>
+            </div>
+          </article>
+        </div>
+
+        <div class="live" id="liveStatus" data-state="idle">
+          <div class="live-top">
+            <span class="pulse" aria-hidden="true"></span>
+            <span class="live-label" id="liveLabel">Idle</span>
+            <span class="live-meta" id="liveMeta">Ready</span>
+            <button type="button" id="btnCancel" class="ghost cancel" hidden>Stop</button>
+          </div>
+          <div class="live-bar" aria-hidden="true"><span id="liveBar"></span></div>
+          <p class="live-stage" id="liveStage">No process running.</p>
+          <pre class="live-detail" id="liveDetail"></pre>
+        </div>
+
+        <pre class="log" id="log"></pre>
+      </aside>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

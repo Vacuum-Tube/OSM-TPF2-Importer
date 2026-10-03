@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from scipy.interpolate import CubicSpline
-from copy import deepcopy
 
 from vec2 import Vec2
 
@@ -56,11 +55,12 @@ class MyCubicSpline(CubicSpline):
     # calc error spline / deviation from linear spline: y[i]+(x-x[i])/(x[i+1]-x[i])*(y[i+1]-y[i])
     # simple approximation of (geometric) spline error
     def error_spline(self):
-        cerr = deepcopy(self)
+        # Rebuild instead of deepcopy: SciPy>=1.13 CubicSpline cannot pickle/deepcopy.
+        cerr = MyCubicSpline([yi.toArray() for yi in self.y], x=list(self.x), bc_method="natural")
         cerr.iserrorspline = True
         for m in range(cerr.c.shape[1]):
-            cerr.c[2, m, :] -= ((self.y[m + 1] - self.y[m]) / (self.x[m + 1] - self.x[m])).toArray()  # linear term
-            cerr.c[3, m, :] -= self.y[m].toArray()  # constant term
+            cerr.c[2, m, :] -= ((self.y[m + 1] - self.y[m]) / (self.x[m + 1] - self.x[m])).toArray()
+            cerr.c[3, m, :] -= self.y[m].toArray()
         return cerr
 
     def maxerr_at_node(self, i, samples=10):

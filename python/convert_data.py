@@ -1,7 +1,197 @@
+import math
+
 from coord2metric import Coord2metric
+from converter_log import vprint
 from osmread import Node, Way, Relation
 
 from sort_edges import ignored_highway_types, highwaytypes
+
+_RESIDENTIAL_BUILDINGS = {
+    "house", "detached", "semidetached_house", "terrace", "bungalow",
+    "apartments", "residential", "dormitory", "farm", "cabin", "allotment_house",
+    "semidetached", "static_caravan", "houseboat", "duplex",
+}
+_COMMERCIAL_BUILDINGS = {
+    "retail", "commercial", "office", "supermarket", "kiosk", "hotel",
+    "motel", "shop", "service",
+}
+_INDUSTRIAL_BUILDINGS = {
+    "industrial", "factory", "manufacture", "warehouse", "hangar",
+    "barn", "silo", "storage_tank", "works",
+}
+_SKIP_BUILDINGS = {
+    "no", "garage", "garages", "carport", "shed", "hut", "roof", "ruins",
+    "collapsed", "construction", "proposed", "tent", "container", "bridge",
+    "parking", "car_port", "grandstand", "stadium", "church", "cathedral",
+    "chapel", "mosque", "synagogue", "temple", "school", "university",
+    "hospital", "train_station", "transportation", "kindergarten",
+    "public", "civic",
+}
+_COMMERCIAL_AMENITY = {
+    "restaurant", "cafe", "fast_food", "pub", "bar", "bank", "pharmacy",
+    "marketplace", "fuel", "shop", "ice_cream", "biergarten", "cinema",
+    "theatre", "nightclub", "post_office",
+}
+_INDUSTRIAL_AMENITY = {"waste_transfer_station", "recycling"}
+
+
+def classify_building(tags):
+    b = (tags.get("building") or "").split(";")[0].strip().lower()
+    if not b:
+        return None
+    if b in _SKIP_BUILDINGS and b not in {"yes", "building"}:
+        return None
+    if tags.get("shop") or tags.get("office") or tags.get("amenity") in _COMMERCIAL_AMENITY:
+        return "commercial"
+    if tags.get("industrial") or tags.get("man_made") in {"works", "wastewater_plant"}:
+        return "industrial"
+    if tags.get("amenity") in _INDUSTRIAL_AMENITY:
+        return "industrial"
+    if tags.get("residential"):
+        return "residential"
+    use = tags.get("building:use")
+    if use == "residential":
+        return "residential"
+    if use in {"commercial", "retail", "office"}:
+        return "commercial"
+    if use == "industrial":
+        return "industrial"
+    if b in _RESIDENTIAL_BUILDINGS:
+        return "residential"
+    if b in _COMMERCIAL_BUILDINGS:
+        return "commercial"
+    if b in _INDUSTRIAL_BUILDINGS:
+        if tags.get("shop") or tags.get("wholesale"):
+            return "commercial"
+        return "industrial"
+    land = tags.get("landuse")
+    if land == "residential":
+        return "residential"
+    if land in {"commercial", "retail"}:
+        return "commercial"
+    if land == "industrial":
+        return "industrial"
+    return None
+
+
+def parse_building_levels(tags):
+    raw = tags.get("building:levels") or tags.get("levels")
+    if raw:
+        try:
+            return max(1, int(float(str(raw).split(";")[0].split("-")[0].strip())))
+        except ValueError:
+            pass
+    height = tags.get("height") or tags.get("building:height")
+    if height:
+        try:
+            metres = float(str(height).lower().replace("m", "").split(";")[0].strip())
+            if metres > 0:
+                return max(1, int(round(metres / 3.0)))
+        except ValueError:
+            pass
+    return None
+
+
+def footprint_metrics(pts):
+    """Return centroid, width, depth, heading (rad) from a closed ring of [x,y]."""
+    if len(pts) < 3:
+        return None
+    ring = list(pts)
+    if ring[0][0] != ring[-1][0] or ring[0][1] != ring[-1][1]:
+        ring.append([ring[0][0], ring[0][1]])
+    area = 0.0
+    cx = 0.0
+    cy = 0.0
+    for i in range(len(ring) - 1):
+        x0, y0 = ring[i]
+        x1, y1 = ring[i + 1]
+        cross = x0 * y1 - x1 * y0
+        area += cross
+        cx += (x0 + x1) * cross
+        cy += (y0 + y1) * cross
+    area *= 0.5
+    if abs(area) < 8.0:
+        return None
+    cx /= (6.0 * area)
+    cy /= (6.0 * area)
+    best = 0.0
+    heading = 0.0
+    for i in range(len(ring) - 1):
+        dx = ring[i + 1][0] - ring[i][0]
+        dy = ring[i + 1][1] - ring[i][1]
+        length2 = dx * dx + dy * dy
+        if length2 > best:
+            best = length2
+            heading = math.atan2(dy, dx)
+    c = math.cos(-heading)
+    s = math.sin(-heading)
+    minx = miny = 1e18
+    maxx = maxy = -1e18
+    for x, y in ring[:-1]:
+        lx = (x - cx) * c - (y - cy) * s
+        ly = (x - cx) * s + (y - cy) * c
+        minx = min(minx, lx)
+        maxx = max(maxx, lx)
+        miny = min(miny, ly)
+        maxy = max(maxy, ly)
+    width = maxx - minx
+    depth = maxy - miny
+    if width < 5.0 or depth < 5.0:
+        return None
+    if width > 80.0 or depth > 80.0:
+        return None
+    if abs(area) > 6000.0:
+        return None
+    return {
+        "pos": [cx, cy],
+        "width": round(width, 2),
+        "depth": round(depth, 2),
+        "heading": round(heading, 4),
+    }
+
+
+def extract_buildings(nodes, ways, map_bounds, bounds_length):
+    """Footprint records only. Same Coord2metric as a full convert."""
+    transf = Coord2metric(map_bounds, bounds_length).latlon2metricoffset
+    buildings = []
+    for way in ways.values():
+        tags = way.tags
+        if not tags.get("building"):
+            continue
+        wnodes = way.nodes
+        if not wnodes or wnodes[0] != wnodes[-1]:
+            continue
+        purpose = classify_building(tags)
+        if not purpose:
+            continue
+        pts = []
+        skip = False
+        for nid in wnodes[:-1]:
+            node = nodes.get(nid)
+            if not node or node.tags.get("outofbounds"):
+                skip = True
+                break
+            pts.append(list(transf(node.lat, node.lon)))
+        if skip:
+            continue
+        metrics = footprint_metrics(pts)
+        if not metrics:
+            continue
+        rec = {
+            "purpose": purpose,
+            "pos": metrics["pos"],
+            "width": metrics["width"],
+            "depth": metrics["depth"],
+            "heading": metrics["heading"],
+        }
+        levels = parse_building_levels(tags)
+        if levels:
+            rec["levels"] = levels
+        if tags.get("name"):
+            rec["name"] = tags["name"]
+        buildings.append(rec)
+    print("Buildings kept:", len(buildings))
+    return buildings
 
 
 def tointornil(str, fallback=None):
@@ -33,6 +223,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
             "grounds": [],
         },
         "objects": [],
+        "buildings": [],
     }
 
     places = dict((place, []) for place in ["municipality", "city", "town", "village", "suburb", "quarter",
@@ -124,9 +315,8 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
     print("Places found:")
     for place, nodes in places.items():
         print(place + ":", len(nodes))
-        # if place != "locality":
         for node in nodes:
-            print("\t" + node["name"])
+            vprint("\t" + node["name"])
 
     # https://wiki.openstreetmap.org/wiki/Key:place
     data["towns"] = [
@@ -140,6 +330,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
     ]
 
     poly_areas_added = set()  # some forests are mapped twice, as way and relation
+    skipped_missing_nodes = 0
     groundtags_landuse = {"residential", "commercial", "industrial", "retail", "construction", "education",
                           "brownfield", "quarry", "railway", "meadow", "orchard", "allotments",
                           "farmland", "farmyard", "vineyard", "animal_keeping", "flowerbed"}
@@ -185,16 +376,18 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                 mxspds = list(filter(None, [
                     tointornil(tags.get("maxspeed:backward")), tointornil(tags.get("maxspeed:forward"))]))
                 speed = min(mxspds) if mxspds else None
+            gauge = tointornil(tags.get("gauge"))
             if istrack and speed is None:
-                print(f"Track {id} no speed")
-            if istrack and tointornil(tags.get("gauge")) is None:
-                print(f"Track {id} no gauge")
+                vprint(f"Track {id} no speed")
+            if istrack and gauge is None:
+                vprint(f"Track {id} no gauge")
+                if not istram and not issubway:
+                    gauge = 1435
 
             for i in range(len(wnodes) - 1):
                 if wnodes[i] not in data["nodes"] or wnodes[i + 1] not in data["nodes"]:
-                    # print(f"Out of bounds: Skip Edge({wnodes[i]},{wnodes[i + 1]})")
-                    # continue  # skip edge
-                    raise Exception(f"Way{id} - Edge({wnodes[i]},{wnodes[i + 1]}) Node not in data")
+                    skipped_missing_nodes += 1
+                    continue
                 data["edges"][f"{id}_{i}"] = {
                     "node0": wnodes[i],
                     "node1": wnodes[i + 1],
@@ -230,7 +423,7 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                         "type": tags.get("railway"),
                         "speed": speed,
                         "electrified": False if tags.get("electrified") == "no" else tags.get("electrified"),
-                        "gauge": tointornil(tags.get("gauge")),
+                        "gauge": gauge,
                         "tram": istram,
                         "subway": issubway,
                         "lzb": trueornil(tags.get("railway:lzb") == "yes"),
@@ -239,15 +432,21 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                     "tunnel": False if tags.get("tunnel") == "no" else tags.get("tunnel"),
                 }
 
-            data["nodes"][wnodes[0]]["way_start_to"].append(wnodes[1])
-            data["nodes"][wnodes[-1]]["way_end_from"].append(wnodes[-2])
+            n0 = data["nodes"].get(wnodes[0])
+            n1 = data["nodes"].get(wnodes[-1])
+            if n0 and len(wnodes) > 1:
+                n0["way_start_to"].append(wnodes[1])
+            if n1 and len(wnodes) > 1:
+                n1["way_end_from"].append(wnodes[-2])
             for i in range(1, len(wnodes) - 1):
-                data["nodes"][wnodes[i]]["way_within"].append([wnodes[i - 1], wnodes[i + 1]])
+                mid = data["nodes"].get(wnodes[i])
+                if mid:
+                    mid["way_within"].append([wnodes[i - 1], wnodes[i + 1]])
 
-            if data["nodes"][wnodes[0]]["outofbounds"]:
-                data["nodes"][wnodes[0]]["endpoint"] = True
-            if data["nodes"][wnodes[-1]]["outofbounds"]:
-                data["nodes"][wnodes[-1]]["endpoint"] = True
+            if n0 and n0.get("outofbounds"):
+                n0["endpoint"] = True
+            if n1 and n1.get("outofbounds"):
+                n1["endpoint"] = True
 
         # Area (closed way)
         if wnodes[0] == wnodes[-1]:
@@ -270,6 +469,34 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                 add_polygon(way, id, "grounds", surface="golf_fairway")
             elif tags.get("golf") == "green":
                 add_polygon(way, id, "grounds", surface="golf_green")
+
+        if wnodes and wnodes[0] == wnodes[-1] and tags.get("building"):
+            purpose = classify_building(tags)
+            if purpose:
+                pts = []
+                skip = False
+                for nid in wnodes[:-1]:
+                    node = data["nodes"].get(nid)
+                    if not node or node.get("outofbounds"):
+                        skip = True
+                        break
+                    pts.append(node["pos"][:2])
+                if not skip:
+                    metrics = footprint_metrics(pts)
+                    if metrics:
+                        levels = parse_building_levels(tags)
+                        rec = {
+                            "purpose": purpose,
+                            "pos": metrics["pos"],
+                            "width": metrics["width"],
+                            "depth": metrics["depth"],
+                            "heading": metrics["heading"],
+                        }
+                        if levels:
+                            rec["levels"] = levels
+                        if tags.get("name"):
+                            rec["name"] = tags["name"]
+                        data["buildings"].append(rec)
 
     def add_multipolygon(relation, area_type, **addtags):
         if relation.tags.get("type") != "multipolygon":
@@ -317,6 +544,9 @@ def convert(nodes, ways, relations, map_bounds, bounds_length):
                 tags.get("area:highway") != "steps" and "railway" not in tags:
             add_multipolygon(relation, "grounds", surface=tags.get("surface"), leisure=tags.get("leisure"))
 
+    print("Buildings kept:", len(data["buildings"]))
+    if skipped_missing_nodes:
+        print("Skipped edges with missing nodes:", skipped_missing_nodes)
     return data
 
 

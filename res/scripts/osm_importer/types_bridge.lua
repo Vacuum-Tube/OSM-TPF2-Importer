@@ -1,77 +1,51 @@
+local tools = require "osm_importer.tools"
+
 local bt = {}
 
--- default_type = "cement.lua",  -- Vanilla
-
-------------- Mods
-
--- Autobahn_Kreuz_1
-local autobahn = "Autobahn_aq.lua"  -- 2 thin pillars, green railing
-
--- 2187434173 TFMR2.0 Bridge (Transport Fever Modular Road)
-local tfmr = {
-	thick = "epbridge_thick.lua",
-	thin = "epbridge_thin.lua",
-	nopillar = "epbridge_no_pillar.lua",
+local vanilla = {
+	street = "cement.lua",
+	track = "iron.lua",
+	ped = "stone.lua",
 }
 
--- 2363493916
-local ped_erac = "lollo_freestyle_train_station/pedestrian_basic_no_pillars_era_c.lua"  -- flat
-
--- 1939805466
-local ang_t1 = "angier_bridge_t1.lua"  -- grey concrete, pillar
-
--- ritknat_gitterbruecke_1
-local greengitter = "gitterbruecke_o.lua"  -- no pillar, medium flat
-
--- ritknat_fachwerke_1
--- local rit_t2v3n = "angier_bridge_t2_v3_n.lua"  -- no railing, no pillar
-
--- 2858595053 Straßen- und Schienenbaukasten
--- local pl_cement = "plo_cement.lua" -- vanilla beton, without pillar
-
--- 2060132685 Vienna Fever: Bridge and Retaining Wall
-local invisible = "vienna_fever_infra_leere_bruecke.lua"
-
-
 bt.streettypes = {
-	motorway = autobahn,
-	trunk = autobahn,
-	motorway_link = tfmr.thin,
-	trunk_link = tfmr.thin,
-	primary = ang_t1,
-	secondary = ang_t1,
-	tertiary = ang_t1,
-	primary_link = tfmr.thin,
-	secondary_link = tfmr.thin,
-	tertiary_link = tfmr.thin,
-	residential = tfmr.thick,
-	living_street = tfmr.thick,
-	unclassified = ang_t1,
-	service = ang_t1,
-	construction = tfmr.thick,
-	pedestrian = ped_erac,
-	track = ped_erac,
-	footway = ped_erac,
-	path = ped_erac,
-	bridleway = ped_erac,
-	cycleway = ang_t1,
+	motorway = { "epbridge_thick.lua", "angier_bridge_t1.lua", vanilla.street },
+	trunk = { "epbridge_thick.lua", "angier_bridge_t1.lua", vanilla.street },
+	motorway_link = { "epbridge_thin.lua", vanilla.street },
+	trunk_link = { "epbridge_thin.lua", vanilla.street },
+	primary = { "angier_bridge_t1.lua", "epbridge_thick.lua", vanilla.street },
+	secondary = { "angier_bridge_t1.lua", "epbridge_thick.lua", vanilla.street },
+	tertiary = { "angier_bridge_t1.lua", vanilla.street },
+	primary_link = { "epbridge_thin.lua", vanilla.street },
+	secondary_link = { "epbridge_thin.lua", vanilla.street },
+	tertiary_link = { "epbridge_thin.lua", vanilla.street },
+	residential = { "epbridge_thick.lua", vanilla.street },
+	living_street = { "epbridge_thick.lua", vanilla.street },
+	unclassified = { "angier_bridge_t1.lua", vanilla.street },
+	service = { "angier_bridge_t1.lua", vanilla.street },
+	construction = { "epbridge_thick.lua", vanilla.street },
+	pedestrian = { "lollo_freestyle_train_station/pedestrian_basic_no_pillars_era_c.lua", vanilla.ped },
+	track = { "lollo_freestyle_train_station/pedestrian_basic_no_pillars_era_c.lua", vanilla.ped },
+	footway = { "lollo_freestyle_train_station/pedestrian_basic_no_pillars_era_c.lua", vanilla.ped },
+	path = { "lollo_freestyle_train_station/pedestrian_basic_no_pillars_era_c.lua", vanilla.ped },
+	bridleway = { vanilla.ped },
+	cycleway = { "angier_bridge_t1.lua", vanilla.street },
 }
 
 function bt.getType(data)
 	if data.track then
-		-- if data.track.speed and data.track.speed>120 then
-			-- return ang_t1
-		-- else
-			-- return greengitter  -- overlaps for double tracks
-		-- end
-		return invisible
-	else 
-		local btype = bt.streettypes[data.street.type]
-		if not btype then
-			print("No Bridge Type for street type: "..data.street.type)
-		end
-		return btype  -- nil if type not in table
+		return tools.pick("bridge",
+			"vienna_fever_infra_leere_bruecke.lua",
+			"iron.lua",
+			vanilla.track
+		)
 	end
+	local street = data.street or {}
+	local cands = bt.streettypes[street.type]
+	if type(cands) == "table" then
+		return tools.pick("bridge", table.unpack(cands))
+	end
+	return tools.pick("bridge", vanilla.street)
 end
 
 return bt

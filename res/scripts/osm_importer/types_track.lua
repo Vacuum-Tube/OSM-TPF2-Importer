@@ -1,99 +1,82 @@
+local tools = require "osm_importer.tools"
+
 local tt = {}
 
-tt.fallback_type = "ETH_Schotterbett.lua" -- < choose this to better detect unknown types
--- tt.fallback_type = "standard.lua" -- < choose this for visual appearance
+tt.fallback_type = "standard.lua"
 
-
-------------- Mods
--- unixroot_natural_environment_pro_tpf2_1
--- vt_natural_environment_pro_addon_1
--- ETH_Schotterbett_1
--- eis_os_trackpackage_1
--- yoshi_feldbahn_infra_1
--- 2060012969 vienna_fever_infrastruktur
--- 2258619623 Eeasy Stadtbahn Construction - Basic Segmets
--- 1983390040 Old Track
-
+local function pickTrack(...)
+	return tools.pick("track", ...) or tt.fallback_type
+end
 
 function tt.getType(track)
 	if track.tram or track.subway then
 		if track.gauge then
-			if track.gauge<700 then
-				return "600mm_holz_08.lua"
-			elseif track.gauge<900 then
-				return
-			elseif track.gauge<1200 then  -- 1000
-				return
-			elseif track.gauge<1500 then  -- 1435
+			if track.gauge < 700 then
+				return pickTrack("600mm_holz_08.lua", "standard.lua")
+			elseif track.gauge < 1200 then
+				return pickTrack("eis_os_1000mm_5_5m.lua", "eis_os_750mm.lua", "standard.lua")
+			elseif track.gauge < 1500 then
 				track.reverse = true
-				return "vienna_fever_stadtbahngleis.lua"  -- mast on the left side
+				return pickTrack("vienna_fever_stadtbahngleis.lua", "standard.lua")
 			else
-				return
+				return pickTrack("standard.lua")
 			end
-		else
-			print("WARNING track no gauge ")
-			return
 		end
+		return pickTrack("standard.lua")
 	end
-	
-	if track.electrified=="rail" then  --Stromschiene
-		return "ice_berlin_stromschiene_rechts_neu.lua"
+
+	if not track.gauge then
+		track.gauge = 1435
 	end
-	
-	if track.electrified=="4th_rail" then
-		return
+
+	if track.electrified == "rail" then
+		return pickTrack("ice_berlin_stromschiene_rechts_neu.lua", "standard.lua")
 	end
-	
-	if track.type=="construction" then
-		return "ETH_Schotterbett_300.lua"
-		--"alternativ/high_speed_120.lua"
+
+	if track.electrified == "4th_rail" then
+		return pickTrack("standard.lua")
 	end
-	
-	if track.type=="disused" then
-		-- if track.tram then
-		if track.gauge and track.gauge<850 then
-			return "600mm_stahl_12_schotter.lua"
-		else
-			return "old_track_standard.lua"
+
+	if track.type == "construction" then
+		return pickTrack("ETH_Schotterbett_300.lua", "standard.lua")
+	end
+
+	if track.type == "disused" then
+		if track.gauge and track.gauge < 850 then
+			return pickTrack("600mm_stahl_12_schotter.lua", "standard.lua")
 		end
+		return pickTrack("old_track_standard.lua", "standard.lua")
 	end
-	
-	-- if track.type=="miniature" then
-		-- return
-	-- end
-	
-	-- if track.type=="preserved" then
-		-- return
-	-- end
-	
+
 	if track.gauge then
-		if track.gauge<700 then
-			return "600mm_stahl_12_schotter.lua"
-		elseif track.gauge<900 then
-			return "eis_os_750mm.lua"
-		elseif track.gauge<1200 then  -- 1000
-			return "eis_os_1000mm_5_5m.lua"
-		elseif track.gauge<1500 then  -- 1435
+		if track.gauge < 700 then
+			return pickTrack("600mm_stahl_12_schotter.lua", "standard.lua")
+		elseif track.gauge < 900 then
+			return pickTrack("eis_os_750mm.lua", "standard.lua")
+		elseif track.gauge < 1200 then
+			return pickTrack("eis_os_1000mm_5_5m.lua", "standard.lua")
+		elseif track.gauge < 1500 then
 			if track.speed then
 				return tt.normalSpeeds(track)
-			else
-				-- print("ERROR track no speed")
-				return tt.fallback_type
-				-- return "standard.lua"
 			end
+			return pickTrack("standard.lua")
 		else
-			return
+			return pickTrack("standard.lua")
 		end
-	else
-		-- print("ERROR track no gauge ")
-		return
 	end
-	
-	error(debugPrint(track) or "not return")
+	return pickTrack("standard.lua")
 end
 
-tt.normalSpeeds = function(track)
-	local speeds = {
+function tt.normalSpeeds(track)
+	local speed = tonumber(track.speed) or 80
+	if speed >= 160 then
+		return pickTrack(
+			"high_speed.lua",
+			"high_speed_lzb_200.lua",
+			"standard.lua"
+		)
+	end
+	local named = {
 		[5] = "standard_10.lua",
 		[10] = "standard_10.lua",
 		[15] = "standard_20.lua",
@@ -110,46 +93,14 @@ tt.normalSpeeds = function(track)
 		[110] = "low_speed_110.lua",
 		[120] = "low_speed_120.lua",
 		[130] = "low_speed_130.lua",
-		[140] = "high_speed_140.lua",--low_speed.lua
+		[140] = "high_speed_140.lua",
 		[150] = "high_speed_150.lua",
-		[160] = "high_speed.lua",
-		[180] = "high_speed_lzb_180.lua",
-		[200] = "high_speed_lzb_200.lua",
-		[220] = "alternativ/high_speed_lzb_220.lua",  -- alternativ: new
-		[250] = "alternativ/high_speed_lzb_250.lua",
-		[300] = "alternativ/high_speed_block_lzb_300.lua",  -- feste Fahrbahn
 	}
-	local speedsLZB = {
-		[10] = "high_speed_lzb_10.lua",
-		[20] = "high_speed_lzb_20.lua",
-		[30] = "high_speed_lzb_30.lua",
-		[40] = "high_speed_lzb_40.lua",
-		[50] = "high_speed_lzb_50.lua",
-		[60] = "high_speed_lzb_60.lua",
-		[70] = "high_speed_lzb_70.lua",
-		[80] = "high_speed_lzb_80.lua",
-		[90] = "high_speed_lzb_90.lua",
-		[100] = "high_speed_lzb_100.lua",
-		[110] = "high_speed_lzb_110.lua",
-		[120] = "high_speed_lzb_120.lua",
-		[130] = "high_speed_lzb_130.lua",
-		[140] = "high_speed_lzb_140.lua",
-		[150] = "high_speed_lzb_150.lua",
-		[160] = "high_speed_lzb_160.lua",
-	}
-	local speedtype
-	if track.lzb then
-		speedtype = speedsLZB[track.speed]
+	local preferred = named[speed]
+	if speed >= 140 then
+		return pickTrack(preferred, "high_speed.lua", "standard.lua")
 	end
-	if not speedtype then
-		speedtype = speeds[track.speed]
-	end
-	if speedtype then
-		return speedtype
-	else
-		print("WARNING normal gauge - speed not found "..track.speed)
-		return tt.fallback_type
-	end
+	return pickTrack(preferred, "standard.lua")
 end
 
 return tt

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Transport Fever Studio</title>
+  <link rel="stylesheet" href="start.css" />
+</head>
+<body>
+  <main class="chooser">
+    <p class="eyebrow">TRANSPORT FEVER TOOLKIT</p>
+    <h1>Choose your <em>Studio</em></h1>
+    <p class="intro">Choose a game workspace. OSM source-data tools are shared; in-game importing remains game-specific.</p>
+    <div class="cards">
+      <button class="card" type="button" data-mode="tpf2">
+        <span class="number">01 / TPF2</span>
+        <strong>OSM Map Studio</strong>
+        <span>Prepare OSM, terrain and imagery; convert, recommend Workshop packs and install the TPF2 importer.</span>
+        <span class="launch">Open TPF2 Studio →</span>
+      </button>
+      <button class="card" type="button" data-mode="tf3">
+        <span class="number">02 / TPF3</span>
+        <strong>OSM Map Studio</strong>
+        <span>Prepare and export OSM, terrain and imagery for TF3. Direct in-game OSM import is not supported yet.</span>
+        <span class="launch">Open TPF3 Studio →</span>
+      </button>
+      <button class="card" type="button" data-mode="tf3_converter">
+        <span class="number">03 / MODDING</span>
+        <strong>Legacy Mod Converter</strong>
+        <span>Create TF3 metadata files from a legacy mod; source scripts and assets are copied unchanged.</span>
+        <span class="launch">Open Mod Converter →</span>
+      </button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+    <p class="footnote">Public OSM services are accessed with attribution and conservative request pacing; Studio does not bypass service limits. The TF3 converter does not port TF2 scripts or game resources.</p>
+  </main>
+  <script src="start.js"></script>
+</body>
+</html>
